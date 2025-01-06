@@ -1,0 +1,61 @@
+
+server:
+  port: 8080
+
+
+spring:
+  redis:
+    database: 1
+    host: 127.0.0.1
+  application:
+    name: r-pan-server
+  output:
+    ansi:
+      enabled: always
+  mvc:
+    servlet:
+      load-on-startup: 1
+  servlet:
+    multipart:
+      max-file-size: 3072MB
+      max-request-size: 3072MB
+
+  datasource:
+    username: root
+    password: 123456
+    url: jdbc:mysql://127.0.0.1:3306/sync_pan?characterEncoding=utf8&serverTimeZone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/**/*.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+
+#management:
+#  endpoints:
+#    web:
+#      exposure:
+#        include: '*'
+#        exclude: env,beans
+
+#swagger2:
+#  show: true
+#  group-name: ${spring.application.name}
+#  base-package: com.imooc.pan
+#  title: r-pan-server docs
+#  description: r-pan-server docs
+#  terms-of-service-url: http://127.0.0.1:${server.port}
+#  contact-name: rubin
+#  contact-url: https://blog.rubinchu.com
+#  contact-email: rubinchu@126.com
+#  version: 1.0
+
+logging:
+  level:
+    root: INFO
