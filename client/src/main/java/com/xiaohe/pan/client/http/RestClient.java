@@ -91,10 +91,10 @@ public final class RestClient {
      * 请求类型:JSON体
      */
     private static final String REQUEST_TYPE_JSON = "application/json; charset=utf-8";
- 
+
     private RestClient() {
     }
- 
+
     /**
      * Http Get:不带请求参数
      *
@@ -105,7 +105,7 @@ public final class RestClient {
     public String get(String url, Map<String, Object> headerMap) {
         return get(url, headerMap, null);
     }
- 
+
     /**
      * Http Get:带请求参数
      *
@@ -119,7 +119,7 @@ public final class RestClient {
         checkHeader(headerMap);
         return doGet(url, headerMap, params, StandardCharsets.UTF_8);
     }
- 
+
     /**
      * Http Post:Form表单不带请求参数
      *
@@ -130,7 +130,7 @@ public final class RestClient {
     public String post(String url, Map<String, Object> headerMap) {
         return doPostForForm(url, headerMap, null, StandardCharsets.UTF_8);
     }
- 
+
     /**
      * Http Post:根据请头识别FORM表单还是JSON体
      *
@@ -151,33 +151,35 @@ public final class RestClient {
             throw new RuntimeException("not support this post type");
         }
     }
- 
+
     /**
      * HTTP Put:Form表单方式不带参数
      * Content-type:application/x-www-form-urlencoded; charset=UTF-8
-     * @param url url
+     *
+     * @param url       url
      * @param headerMap headerMap
      * @return String
      */
-    public static String put(String url, Map<String,Object> headerMap) {
+    public static String put(String url, Map<String, Object> headerMap) {
         checkUrl(url);
         checkHeader(headerMap);
         return doPut(url, headerMap, null);
     }
- 
+
     /**
      * Http Delete:不带参数的表单形式
      * Content-type:application/x-www-form-urlencoded; charset=UTF-8
-     * @param url url
+     *
+     * @param url       url
      * @param headerMap header
      * @return HttpResult
      */
-    public static String delete(String url, Map<String, Object> headerMap){
+    public static String delete(String url, Map<String, Object> headerMap) {
         checkUrl(url);
         checkHeader(headerMap);
         return doDelete(url, headerMap, null);
     }
- 
+
     /**
      * HTTP Get:带请求参数
      *
@@ -195,7 +197,7 @@ public final class RestClient {
         String result = null;
         try {
             uriBuilder = new URIBuilder(url);
-            if(MapUtils.isNotEmpty(params)) {
+            if (MapUtils.isNotEmpty(params)) {
                 for (Map.Entry<String, Object> entry : params.entrySet()) {
                     uriBuilder.setParameter(entry.getKey(), entry.getValue().toString());
                 }
@@ -217,7 +219,7 @@ public final class RestClient {
         }
         return result;
     }
- 
+
     /**
      * HTTP Post:Form表单方式
      * Content-type:application/x-www-form-urlencoded; charset=UTF-8
@@ -258,7 +260,7 @@ public final class RestClient {
         }
         return result;
     }
- 
+
     /**
      * HTTP Post:JSON形式
      * Content-type:application/json; charset=utf-8
@@ -291,14 +293,14 @@ public final class RestClient {
         }
         return result;
     }
- 
+
     /**
      * HTTP Put:Form表单方式带参数
      * Content-type:application/x-www-form-urlencoded; charset=UTF-8
      *
-     * @param url url
+     * @param url       url
      * @param headerMap headerMap
-     * @param paramMap paramMap
+     * @param paramMap  paramMap
      * @return String
      */
     public static String doPut(String url, Map<String, Object> headerMap, Map<String, Object> paramMap) {
@@ -331,13 +333,14 @@ public final class RestClient {
         }
         return result;
     }
- 
+
     /**
      * Http Delete:不带参数的表单形式
      * Content-type:application/x-www-form-urlencoded; charset=UTF-8
-     * @param url url
+     *
+     * @param url       url
      * @param headerMap headerMap
-     * @param paramMap paramMap
+     * @param paramMap  paramMap
      * @return String
      */
     public static String doDelete(String url, Map<String, Object> headerMap, Map<String, Object> paramMap) {
@@ -369,11 +372,11 @@ public final class RestClient {
         }
         return result;
     }
- 
+
     public static RestClient getInstance() {
         return INSTANCE;
     }
- 
+
     /**
      * 忽略证书验证的CloseableHttpClient对象,适配Http/Https
      *
@@ -407,7 +410,7 @@ public final class RestClient {
         }
         return closeableHttpClient;
     }
- 
+
     /**
      * 信任所有证书
      *
@@ -418,9 +421,11 @@ public final class RestClient {
             @Override
             public void checkClientTrusted(java.security.cert.X509Certificate[] x509Certificates, String s) throws CertificateException {
             }
+
             @Override
             public void checkServerTrusted(java.security.cert.X509Certificate[] x509Certificates, String s) throws CertificateException {
             }
+
             @Override
             public java.security.cert.X509Certificate[] getAcceptedIssuers() {
                 return null;
@@ -428,7 +433,7 @@ public final class RestClient {
         }};
         return trustAllCerts;
     }
- 
+
     /**
      * Http连接池配置
      *
@@ -449,7 +454,7 @@ public final class RestClient {
         connectionManager.setDefaultMaxPerRoute(10);
         return connectionManager;
     }
- 
+
     /**
      * 封装RequestConfig
      *
@@ -462,7 +467,7 @@ public final class RestClient {
                 .setSocketTimeout(getSocketTime()).build();
         return requestConfig;
     }
- 
+
     /**
      * HttpClient的重试策略
      *
@@ -506,19 +511,19 @@ public final class RestClient {
         };
         return retryHandler;
     }
- 
+
     public static Integer getConnectionTime() {
         return CONNECTION_TIME;
     }
- 
+
     public static Integer getConnectionRequestTime() {
         return CONNECTION_REQUEST_TIME;
     }
- 
+
     public static Integer getSocketTime() {
         return SOCKET_TIME;
     }
- 
+
     /**
      * 校验url,支持扩展
      *
@@ -530,7 +535,7 @@ public final class RestClient {
             throw new RuntimeException("rest client request url not null");
         }
     }
- 
+
     /**
      * 校验Header,支持扩展
      *
@@ -542,7 +547,7 @@ public final class RestClient {
             throw new RuntimeException("rest client request header not null");
         }
     }
- 
+
     /**
      * 校验Body,支持扩展
      *
@@ -554,7 +559,7 @@ public final class RestClient {
             throw new RuntimeException("rest client request map  not null");
         }
     }
- 
+
     /**
      * 关闭流资源
      *
@@ -567,3 +572,4 @@ public final class RestClient {
             log.error("close error", e);
         }
     }
+}
