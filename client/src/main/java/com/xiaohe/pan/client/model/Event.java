@@ -1,22 +1,35 @@
 package com.xiaohe.pan.client.model;
 
 import com.xiaohe.pan.client.enums.EventType;
-import com.xiaohe.pan.common.util.DateUtil;
-
 import java.io.File;
-import java.util.concurrent.TimeUnit;
 
-
+/**
+ * 文件发生的时间
+ */
 public class Event implements Comparable<Event> {
-    // 发生修改的文件
+    /**
+     * 发生修改的文件
+     */
     private final File file;
-    // 文件路径
+
+    /**
+     * 文件路径
+     */
     private final String relativePath;
-    // 该事件的类型
+
+    /**
+     * 该事件的类型
+     */
     private final EventType type;
-    // 事件发生的时间，毫秒
+
+    /**
+     * 事件发生的时间，毫秒
+     */
     private final long timestamp;
-    // 该文件绑定的远端文件
+
+    /**
+     * 该文件绑定的远端文件
+     */
     private final String remoteDirectory;
 
     public Event(File file, EventType type, String remoteDirectory) {

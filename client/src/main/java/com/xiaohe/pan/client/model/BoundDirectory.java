@@ -4,10 +4,23 @@ import com.xiaohe.pan.client.listener.FileListener;
 
 import java.io.File;
 
+/**
+ * 已绑定文件夹
+ */
 public class BoundDirectory {
-
+    /**
+     * 本地目录
+     */
     private final File directory;
+
+    /**
+     * 远程目录
+     */
     private final String remote;
+
+    /**
+     * 此绑定文件夹对应的监听器
+     */
     private final FileListener listener;
 
     public BoundDirectory(File directory, String remote, FileListener listener) {
@@ -27,4 +40,5 @@ public class BoundDirectory {
     public String getRemote() {
         return remote;
     }
+
 }

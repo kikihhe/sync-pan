@@ -27,7 +27,8 @@ public class FileListenerMonitor {
         private static final FileListenerMonitor INSTANCE = new FileListenerMonitor();
     }
 
-    public synchronized boolean bindDirectory(File dir, String remote) {
+    public synchronized boolean bindDirectory(String local, String remote) {
+        File dir = new File(local);
         // 检查目录是否存在并且是一个目录
         if (!dir.exists()) {
             System.out.println("文件或目录不存在：" + dir.getPath());

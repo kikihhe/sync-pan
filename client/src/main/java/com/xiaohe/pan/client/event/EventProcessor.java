@@ -1,5 +1,6 @@
 package com.xiaohe.pan.client.event;
 
+import com.xiaohe.pan.client.listener.FileListenerMonitor;
 import com.xiaohe.pan.client.model.Event;
 
 import java.util.List;
@@ -21,8 +22,9 @@ public class EventProcessor {
         return INSTANCE;
     }
 
-    public void start() {
+    public void start(FileListenerMonitor monitor) {
         scheduler.scheduleAtFixedRate(this::processEvents, 5, 3, TimeUnit.SECONDS);
+        monitor.start();
     }
 
     private void processEvents() {
