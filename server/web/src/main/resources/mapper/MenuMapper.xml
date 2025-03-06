@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.xiaohe.pan.server.web.mapper.MenuMapper">
+    <resultMap id="Menu" type="com.xiaohe.pan.server.web.model.domain.Menu">
+        <id property="id" column="id"/>
+        <result property="menuName" column="menu_name"/>
+        <result property="menuLevel" column="menu_level"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="owner" column="owner"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="delete" column="delete"/>
+    </resultMap>
+    <!--配置-->
+    <!--id  接口对应的方法-->
+    <!--parameterType 方法入参类别 [可简写]-->
+    <!--useGeneratedKeys 可理解成是否有返回值-->
+    <!--keyProperty 返回值(主键)类别为-->
+    <!--注: 返回值不是指方法中返回的值，而是执行后自动在（添加/更新）对象里被赋值-->
+    <!--#{?} 入参类别中的属性-->
+    <!--Map<String,Object> selectMapById(Long id);-->
+
+</mapper>

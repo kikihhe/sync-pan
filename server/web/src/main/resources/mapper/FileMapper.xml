@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.xiaohe.pan.server.web.mapper.FileMapper">
+    <resultMap id="File" type="com.xiaohe.pan.server.web.model.domain.File">
+        <id property="id" column="id"/>
+        <result property="fileName" column="file_name"/>
+        <result property="filePath" column="file_path"/>
+        <result property="size" column="size"/>
+        <result property="fileType" column="file_type"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="owner" column="owner"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="deleted" column="is_deleted"/> <!-- 逻辑删除字段建议使用is_deleted -->
+    </resultMap>
+    <!--配置-->
+    <!--id  接口对应的方法-->
+    <!--parameterType 方法入参类别 [可简写]-->
+    <!--useGeneratedKeys 可理解成是否有返回值-->
+    <!--keyProperty 返回值(主键)类别为-->
+    <!--注: 返回值不是指方法中返回的值，而是执行后自动在（添加/更新）对象里被赋值-->
+    <!--#{?} 入参类别中的属性-->
+    <!--Map<String,Object> selectMapById(Long id);-->
+
+</mapper>
