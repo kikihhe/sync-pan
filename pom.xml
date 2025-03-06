@@ -7,9 +7,11 @@
     <packaging>pom</packaging>
     <name>Archetype - SyncPan</name>
     <url>http://maven.apache.org</url>
+
     <modules>
         <module>client</module>
         <module>common</module>
+        <module>server</module>
     </modules>
 
 
