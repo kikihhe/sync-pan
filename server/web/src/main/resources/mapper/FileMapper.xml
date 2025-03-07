@@ -7,15 +7,23 @@
     <resultMap id="File" type="com.xiaohe.pan.server.web.model.domain.File">
         <id property="id" column="id"/>
         <result property="fileName" column="file_name"/>
-        <result property="filePath" column="file_path"/>
-        <result property="size" column="size"/>
+        <result property="fileSize" column="file_size"/>
         <result property="fileType" column="file_type"/>
-        <result property="parentId" column="parent_id"/>
+        <result property="menuId" column="menu_id"/>
         <result property="owner" column="owner"/>
+        <result property="filePath" column="file_path"/>
+        <result property="relativePath" column="relative_path"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
-        <result property="deleted" column="is_deleted"/> <!-- 逻辑删除字段建议使用is_deleted -->
+        <result property="deleted" column="deleted"/>
     </resultMap>
+    <select id="selectSubFileByRange" resultType="com.xiaohe.pan.server.web.model.domain.File">
+        SELECT *
+        FROM file
+        WHERE `menu_id` = #{menuId}
+            AND `owner` = #{userId}
+            LIMIT #{start}, #{count}
+    </select>
     <!--配置-->
     <!--id  接口对应的方法-->
     <!--parameterType 方法入参类别 [可简写]-->

@@ -13,7 +13,7 @@
         <result property="answer" column="answer"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
-        <result property="delete" column="delete"/>
+        <result property="deleted" column="deleted"/>
     </resultMap>
 
 </mapper>

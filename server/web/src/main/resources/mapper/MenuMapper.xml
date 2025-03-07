@@ -12,8 +12,23 @@
         <result property="owner" column="owner"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
-        <result property="delete" column="delete"/>
+        <result property="deleted" column="deleted"/>
     </resultMap>
+
+    <select id="selectSubMenuByRange" resultType="com.xiaohe.pan.server.web.model.domain.Menu">
+        SELECT *
+        FROM menu
+        WHERE owner = #{userId}
+        <choose>
+            <when test="menuId == null">
+                AND menu_level = 1
+            </when>
+            <otherwise>
+                AND parent_id = #{menuId}
+            </otherwise>
+        </choose>
+        LIMIT #{start}, #{count}
+    </select>
     <!--配置-->
     <!--id  接口对应的方法-->
     <!--parameterType 方法入参类别 [可简写]-->
