@@ -9,6 +9,7 @@ import com.xiaohe.pan.server.web.model.domain.User;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 
 import javax.servlet.Filter;
@@ -20,24 +21,40 @@ import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
-@Component
-@WebFilter("authenticationFilter")
+@WebFilter(filterName = "authenticationFilter")
 public class AuthenticationFilter implements Filter {
 
     private static ObjectMapper objectMapper = new ObjectMapper();
+    private static AntPathMatcher pathMatcher = new AntPathMatcher();
+    /**
+     * 通行白名单
+     */
+    private static List<String> allowList = Arrays.asList(
+            "/hello",
+            "/user/login",
+            "/user/register"
+    );
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException, BusinessException {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
         HttpServletResponse response = (HttpServletResponse) servletResponse;
-        String token = request.getHeader("Authentication");
 
+        // 白名单检查
+        if (allowAccess(request)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String token = request.getHeader("Authentication");
         // 接收来自不同源的请求，可以来自前端，也可以来自客户端
         if (StringUtils.hasText(token)) {
             User user = JWTUtils.parseAndConvert(token, User.class);
             SecurityContextUtil.setCurrentUser(user);
-            doFilter(request, response, filterChain);
+            filterChain.doFilter(request, response);
         } else {
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
@@ -45,5 +62,10 @@ public class AuthenticationFilter implements Filter {
             String json = objectMapper.writeValueAsString(result);
             response.getWriter().write(json);
         }
+    }
+
+    private boolean allowAccess(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return allowList.stream().anyMatch(pattern -> pathMatcher.match(pattern, uri));
     }
 }

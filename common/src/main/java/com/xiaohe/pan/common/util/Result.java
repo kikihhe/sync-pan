@@ -1,8 +1,15 @@
 package com.xiaohe.pan.common.util;
 
 import com.xiaohe.pan.common.constants.ResponseCodeConstants;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
-public class Result<T> {
+import java.io.Serializable;
+
+@Data
+@AllArgsConstructor
+public class Result<T> implements Serializable {
+
     private Integer code;
     private String message;
     private T data;
