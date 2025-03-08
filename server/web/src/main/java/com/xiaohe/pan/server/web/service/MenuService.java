@@ -11,4 +11,6 @@ public interface MenuService extends IService<Menu> {
     public Menu getByUserAndMenuId(Long userId, Long menuId);
 
     public Long countByMenuId(Long menuId, Long userId);
+
+    public Boolean deleteMenu(Long menuId, Long userId);
 }

@@ -27,7 +27,10 @@
                 AND parent_id = #{menuId}
             </otherwise>
         </choose>
-        LIMIT #{start}, #{count}
+        <if test="start != null and count != null">
+            LIMIT #{start}, #{count}
+        </if>
+
     </select>
     <!--配置-->
     <!--id  接口对应的方法-->
