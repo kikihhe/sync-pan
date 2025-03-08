@@ -37,6 +37,24 @@ mybatis-plus:
       logic-not-delete-value: 0
 
 
+storage:
+  type: local # 可选 local/oss/minio
+  local:
+    root-path: /sync-pan
+    root-chunk-path: /sync-pan/chunk
+
+
+#oss:
+#    endpoint: oss-cn-hangzhou.aliyuncs.com
+#    access-key: your-access-key
+#    secret-key: your-secret-key
+#    bucket-name: pan-bucket
+
+#minio:
+#    endpoint: http://minio.example.com:9000
+#    access-key: minio-access
+#    secret-key: minio-secret
+#    bucket-name: pan-bucket
 #management:
 #  endpoints:
 #    web:

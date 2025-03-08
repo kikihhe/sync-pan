@@ -7,6 +7,12 @@
     <version>1.0-SNAPSHOT</version>
     <name>server</name>
     <description>server</description>
+    <modules>
+        <module>storage</module>
+        <module>core</module>
+        <module>web</module>
+    </modules>
+
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

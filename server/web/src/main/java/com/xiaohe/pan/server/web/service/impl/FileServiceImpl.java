@@ -7,8 +7,10 @@ import com.xiaohe.pan.common.util.PageVO;
 import com.xiaohe.pan.server.web.convert.PageConvert;
 import com.xiaohe.pan.server.web.mapper.FileMapper;
 import com.xiaohe.pan.server.web.model.domain.File;
+import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import com.xiaohe.pan.server.web.service.FileService;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -29,5 +31,10 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         lambda.eq(File::getMenuId, menuId);
         lambda.eq(File::getOwner, userId);
         return count(lambda);
+    }
+
+    @Override
+    public Boolean uploadFile(MultipartFile multipartFile, UploadFileDTO fileDTO) {
+        return null;
     }
 }
