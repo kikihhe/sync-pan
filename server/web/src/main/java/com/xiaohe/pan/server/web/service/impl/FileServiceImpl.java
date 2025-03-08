@@ -62,7 +62,11 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
             storageService.store(storeFileContext);
 
             // 2. 保存文件的真实路径与展示路径/用户的联系（入库）
-            file = FileConvert.INSTANCE.uploadDTOConvertTOFile(fileDTO);
+//            file = FileConvert.INSTANCE.uploadDTOConvertTOFile(fileDTO);
+            file.setFileName(fileDTO.getFileName());
+            file.setFileType(file.getFileType());
+            file.setMenuId(fileDTO.getMenuId());
+            file.setOwner(fileDTO.getOwner());
             file.setRealPath(storeFileContext.getRealPath());
             file.setFileSize(multipartFile.getSize());
             Integer storageCode = StoreTypeEnum.getCodeByDesc(storageType);

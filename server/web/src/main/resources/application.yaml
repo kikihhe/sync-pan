@@ -35,13 +35,15 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+      # 使用数据库自增id
+      id-type: auto
 
 
 storage:
   type: local # 可选 local/ali_oss/minio
   local:
-    root-path: /sync-pan
-    root-chunk-path: /sync-pan/chunk
+    root-path: C:/Users/23825/Desktop/毕业设计/测试/single
+    root-chunk-path: C:/Users/23825/Desktop/毕业设计/测试/chunk
 
 
 #oss:

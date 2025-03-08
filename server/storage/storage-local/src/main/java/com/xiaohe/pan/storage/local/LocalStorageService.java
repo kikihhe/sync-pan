@@ -29,11 +29,10 @@ public class LocalStorageService extends AbstractStorageService {
     }
     /**
      * 如果使用 local 方式，启动时要检查 root path 是否存在，不存在就创建
-     * @param args
      * @throws Exception
      */
     @PostConstruct
-    public void initPath(String... args) throws Exception {
+    public void initPath() throws Exception {
         String rootFilePath = properties.getRootFilePath();
         String rootFileChunkPath = properties.getRootFileChunkPath();
         File rootDir = new File(rootFilePath);

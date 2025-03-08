@@ -24,7 +24,7 @@ public class FileController {
      * @return
      */
     @PostMapping("/upload")
-    public Result<String> updateFile(@RequestBody UploadFileDTO fileDTO) throws IOException {
+    public Result<String> updateFile(UploadFileDTO fileDTO) throws IOException {
         if (Objects.isNull(fileDTO)) {
             return Result.error("请选择文件并填写参数");
         }

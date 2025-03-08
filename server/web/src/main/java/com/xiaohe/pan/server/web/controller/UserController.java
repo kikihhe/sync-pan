@@ -1,6 +1,7 @@
 package com.xiaohe.pan.server.web.controller;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.common.util.JWTUtils;
 import com.xiaohe.pan.common.util.Result;
@@ -23,7 +24,7 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/login")
-    public Result login(@RequestBody User user) throws BusinessException {
+    public Result login(@RequestBody User user) throws BusinessException, JsonProcessingException {
         if (!StringUtils.hasText(user.getUsername()) || !StringUtils.hasText(user.getPassword())) {
             return Result.error("请填完整信息!", user);
         }
