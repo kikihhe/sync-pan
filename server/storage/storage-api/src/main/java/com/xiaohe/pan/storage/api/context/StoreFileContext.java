@@ -1,6 +1,7 @@
 package com.xiaohe.pan.storage.api.context;
 
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 import java.io.InputStream;
 import java.io.Serializable;
@@ -9,6 +10,7 @@ import java.io.Serializable;
  * 文件存储引擎存储物理文件的上下文实体
  */
 @Data
+@Accessors(chain = true)
 public class StoreFileContext implements Serializable {
 
     private static final long serialVersionUID = -514678100134294180L;

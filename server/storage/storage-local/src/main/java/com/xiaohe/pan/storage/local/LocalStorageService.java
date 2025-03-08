@@ -5,7 +5,9 @@ import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.common.util.FileUtils;
 import com.xiaohe.pan.storage.api.AbstractStorageService;
 import com.xiaohe.pan.storage.api.context.DeleteFileContext;
+import com.xiaohe.pan.storage.api.context.MergeFileContext;
 import com.xiaohe.pan.storage.api.context.ReadFileContext;
+import com.xiaohe.pan.storage.api.context.StoreFileChunkContext;
 import com.xiaohe.pan.storage.api.context.StoreFileContext;
 import com.xiaohe.pan.storage.local.property.LocalStorageProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -15,11 +17,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.RandomAccessFile;
-import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
-import java.nio.channels.ReadableByteChannel;
 import java.util.List;
+import java.util.Map;
 
 @ConditionalOnProperty(prefix = "storage", value = "local")
 public class LocalStorageService extends AbstractStorageService {
@@ -75,10 +74,22 @@ public class LocalStorageService extends AbstractStorageService {
         });
     }
 
+
     @Override
     public void doRealFile(ReadFileContext context) throws IOException {
         File file = new File(context.getRealPath());
         FileInputStream inputStream = new FileInputStream(file);
         FileUtils.writeFile2OutputStream(inputStream, context.getOutputStream(), file.length());
+    }
+
+
+    @Override
+    public void doStoreChunk(StoreFileChunkContext context) throws IOException {
+
+    }
+
+    @Override
+    public void doMergeFile(MergeFileContext context) throws IOException {
+
     }
 }

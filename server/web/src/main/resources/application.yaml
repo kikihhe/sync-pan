@@ -38,7 +38,7 @@ mybatis-plus:
 
 
 storage:
-  type: local # 可选 local/oss/minio
+  type: local # 可选 local/ali_oss/minio
   local:
     root-path: /sync-pan
     root-chunk-path: /sync-pan/chunk

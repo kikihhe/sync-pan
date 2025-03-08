@@ -5,6 +5,7 @@ import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 public interface FileService extends IService<File> {
@@ -13,5 +14,5 @@ public interface FileService extends IService<File> {
 
     public Long countByMenuId(Long menuId, Long userId);
 
-    public Boolean uploadFile(MultipartFile multipartFile, UploadFileDTO fileDTO);
+    public Boolean uploadFile(MultipartFile multipartFile, UploadFileDTO fileDTO) throws IOException;
 }

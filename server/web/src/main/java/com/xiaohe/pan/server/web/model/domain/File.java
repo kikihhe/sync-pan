@@ -27,13 +27,20 @@ public class File {
 
     private String fileType;
 
+    private Integer storageType;
+
     private Long menuId;
 
     private Long owner;
 
-    private String filePath;
+    /**
+     * 文件真实路径
+     * storageType=local : 文件在服务器的路径
+     * storageType=ali_oss : 文件在阿里云 oss 的url
+     * storageType=minio : 文件在 minio 的下载url
+     */
+    private String realPath;
 
-    private String relativePath;
 
 
     @TableField(value = "create_time",fill = FieldFill.INSERT_UPDATE)
