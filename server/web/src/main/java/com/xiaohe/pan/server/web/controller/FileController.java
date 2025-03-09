@@ -74,7 +74,7 @@ public class FileController {
     }
 
     @PostMapping("/mergeChunk")
-    public Result<String> mergeChunk(MergeChunkFileDTO fileDTO) {
+    public Result<String> mergeChunk(MergeChunkFileDTO fileDTO) throws IOException {
         fileChunkService.mergeChunk(fileDTO);
         return Result.success("success");
     }
