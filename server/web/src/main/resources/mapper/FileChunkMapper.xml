@@ -3,28 +3,18 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.xiaohe.pan.server.web.mapper.FileMapper">
-    <resultMap id="File" type="com.xiaohe.pan.server.web.model.domain.File">
+<mapper namespace="com.xiaohe.pan.server.web.mapper.FileChunkMapper">
+    <resultMap id="FileChunk" type="com.xiaohe.pan.server.web.model.domain.FileChunk">
         <id property="id" column="id"/>
-        <result property="fileName" column="file_name"/>
-        <result property="fileSize" column="file_size"/>
-        <result property="fileType" column="file_type"/>
-        <result property="menuId" column="menu_id"/>
-        <result property="storageType" column="storage_type"/>
-        <result property="owner" column="owner"/>
-        <result property="realPath" column="real_path"/>
         <result property="identifier" column="identifier"/>
+        <result property="realPath" column="real_path"/>
+        <result property="chunkNumber" column="chunk_number"/>
+        <result property="expirationTime" column="expiration_time"/>
+        <result property="storageType" column="storage_type"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
         <result property="deleted" column="deleted"/>
     </resultMap>
-    <select id="selectSubFileByRange" resultType="com.xiaohe.pan.server.web.model.domain.File">
-        SELECT *
-        FROM file
-        WHERE `menu_id` = #{menuId}
-            AND `owner` = #{userId}
-            LIMIT #{start}, #{count}
-    </select>
     <!--配置-->
     <!--id  接口对应的方法-->
     <!--parameterType 方法入参类别 [可简写]-->

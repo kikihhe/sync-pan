@@ -15,4 +15,6 @@ public interface FileService extends IService<File> {
     public Long countByMenuId(Long menuId, Long userId);
 
     public Boolean uploadFile(MultipartFile multipartFile, UploadFileDTO fileDTO) throws IOException;
+
+    public void deleteFile(List<Long> fileList) throws IOException;
 }

@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -84,11 +85,23 @@ public class LocalStorageService extends AbstractStorageService {
 
     @Override
     public void doStoreChunk(StoreFileChunkContext context) throws IOException {
-
+        String rootFileChunkPath = properties.getRootFileChunkPath();
+        String chunkRealPath = FileUtils.generateStoreFileChunkRealPath(rootFileChunkPath, context.getIdentifier(), context.getChunkNumber());
+        File targetFile = new File(chunkRealPath);
+        FileUtils.writeStream2File(context.getInputStream(), targetFile, context.getCurrentChunkSize());
+        context.setRealPath(chunkRealPath);
     }
 
     @Override
     public void doMergeFile(MergeFileContext context) throws IOException {
-
+        String rootFilePath = properties.getRootFilePath();
+        String realFilePath = FileUtils.generateStoreFileRealPath(rootFilePath, context.getFilename());
+        File mergedFile = new File(realFilePath);
+        FileUtils.createFile(mergedFile);
+        List<String> chunkList = context.getRealPathList();
+        for (String chunkPath : chunkList) {
+            FileUtils.appendWrite(Paths.get(realFilePath), new File(chunkPath).toPath());
+        }
+        context.setRealPath(realFilePath);
     }
 }

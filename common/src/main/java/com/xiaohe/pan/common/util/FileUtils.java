@@ -13,6 +13,9 @@ import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 
 public class FileUtils {
     /**
@@ -49,6 +52,33 @@ public class FileUtils {
                 .append(getFileSuffix(filename))
                 .toString();
 
+    }
+
+    /**
+     * 生成文件分片的存储路径
+     * <p>
+     * 生成规则：基础路径 + 年 + 月 + 日 + 唯一标识 + 随机的文件名称 + __,__ + 文件分片的下标
+     *
+     * @param basePath
+     * @param identifier
+     * @param chunkNumber
+     * @return
+     */
+    public static String generateStoreFileChunkRealPath(String basePath, String identifier, Integer chunkNumber) {
+        return new StringBuffer(basePath)
+                .append(File.separator)
+                .append(DateUtil.thisYear())
+                .append(File.separator)
+                .append(DateUtil.thisMonth() + 1)
+                .append(File.separator)
+                .append(DateUtil.thisDayOfMonth())
+                .append(File.separator)
+                .append(identifier)
+                .append(File.separator)
+                .append(UUIDUtil.getUUID())
+                .append("__,__")
+                .append(chunkNumber)
+                .toString();
     }
 
     /**
@@ -104,4 +134,15 @@ public class FileUtils {
         fileChannel.close();
         writableByteChannel.close();
     }
+
+    /**
+     * 追加写文件
+     *
+     * @param target
+     * @param source
+     */
+    public static void appendWrite(Path target, Path source) throws IOException {
+        Files.write(target, Files.readAllBytes(source), StandardOpenOption.APPEND);
+    }
+
 }

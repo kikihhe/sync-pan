@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements FileService {
@@ -69,6 +70,7 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
             file.setOwner(fileDTO.getOwner());
             file.setRealPath(storeFileContext.getRealPath());
             file.setFileSize(multipartFile.getSize());
+            file.setIdentifier(file.getIdentifier());
             Integer storageCode = StoreTypeEnum.getCodeByDesc(storageType);
             file.setStorageType(storageCode);
             int insert = baseMapper.insert(file);
@@ -76,7 +78,7 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
                 throw new RuntimeException("上传失败");
             }
         } catch (Exception e) {
-            if (!Objects.isNull(file) && !Objects.isNull(file.getRealPath())) {
+            if (!Objects.isNull(file.getRealPath())) {
                 DeleteFileContext context = new DeleteFileContext()
                         .setRealFilePathList(Collections.singletonList(file.getRealPath()));
                 storageService.delete(context);
@@ -84,5 +86,21 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
             throw new BusinessException(e.getMessage());
         }
         return true;
+    }
+
+    @Override
+    public void deleteFile(List<Long> fileList) throws IOException {
+        // 1. 查询文件的真实路径
+        List<String> realPathList = baseMapper.selectBatchIds(fileList)
+                .stream().map(File::getRealPath)
+                .collect(Collectors.toList());
+        // 2. 删除真实文件
+        DeleteFileContext context = new DeleteFileContext();
+        context.setRealFilePathList(realPathList);
+
+        storageService.delete(context);
+
+        // 3. 取消关联
+        baseMapper.deleteBatchIds(fileList);
     }
 }

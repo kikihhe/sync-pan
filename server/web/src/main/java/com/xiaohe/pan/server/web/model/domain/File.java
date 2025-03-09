@@ -37,6 +37,19 @@ public class File {
 
     private Long owner;
 
+    public String getIdentifier() {
+        return identifier;
+    }
+
+    public void setIdentifier(String identifier) {
+        this.identifier = identifier;
+    }
+
+    /**
+     * 文件唯一标识
+     */
+    private String identifier;
+
     /**
      * 文件真实路径
      * storageType=local : 文件在服务器的路径
