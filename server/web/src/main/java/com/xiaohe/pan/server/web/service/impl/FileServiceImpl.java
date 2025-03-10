@@ -45,7 +45,11 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
     @Override
     public Long countByMenuId(Long menuId, Long userId) {
         LambdaQueryWrapper<File> lambda = new LambdaQueryWrapper<>();
-        lambda.eq(File::getMenuId, menuId);
+        if (Objects.isNull(menuId)) {
+            lambda.isNull(File::getMenuId);
+        } else {
+            lambda.eq(File::getMenuId, menuId);
+        }
         lambda.eq(File::getOwner, userId);
         return count(lambda);
     }

@@ -7,6 +7,13 @@ public class PageQuery {
 
     private Integer pageSize = 20;
 
+    public PageQuery() {
+    }
+
+    public PageQuery(Integer pageNum, Integer pageSize) {
+        this.pageNum = pageNum;
+        this.pageSize = pageSize;
+    }
 
     public Integer getPageNum() {
         return pageNum - 1;

@@ -7,6 +7,7 @@ import com.xiaohe.pan.common.util.JWTUtils;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.model.domain.User;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
@@ -25,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @WebFilter(filterName = "authenticationFilter")
+@Order(2)
 public class AuthenticationFilter implements Filter {
 
     private static ObjectMapper objectMapper = new ObjectMapper();
@@ -48,7 +50,11 @@ public class AuthenticationFilter implements Filter {
             filterChain.doFilter(request, response);
             return;
         }
-
+        // 添加OPTIONS请求放行
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         String token = request.getHeader("Authentication");
         // 接收来自不同源的请求，可以来自前端，也可以来自客户端
         if (StringUtils.hasText(token)) {

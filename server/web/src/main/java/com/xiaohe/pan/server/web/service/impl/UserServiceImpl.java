@@ -17,6 +17,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         LambdaQueryWrapper<User> lambda = new LambdaQueryWrapper<>();
         lambda.eq(User::getUsername, username);
         User user = baseMapper.selectOne(lambda);
+        if (Objects.isNull(user)) {
+            return null;
+        }
         if (!Objects.equals(user.getPassword(), password)) {
             return null;
         }

@@ -60,6 +60,10 @@ public class MenuController {
 
         // 当前页在目录范围内
         if (start < menuTotal) {
+            // 如果目录33个，文件67个
+            // pageNum=3, pageSize=10, 那么 start=30
+            // 我需要 3 个目录，也就是 menuTotal - start
+            // 7个文件，并且 start=0, fileCount = start + pageSize - menuTotal
             int dirCount = (int) Math.min(menuTotal - start, pageSize);
             menuList = menuService.getSubMenuByRange(menuDTO.getMenuId(), currentUserId, start, dirCount);
             // 需要补充文件数据
@@ -70,6 +74,16 @@ public class MenuController {
             }
         } else {
             // 2. 当前页在文件范围内, 只需要获取文件数据
+            // 两种可能:
+            // a. 33目录+67文件，可是用户要第七页，也就是 [start, count] = [60, 69]
+            // 那么我们的 start = start - menuTotal
+            // b. 现在没有目录，101个文件，要第4页，也就是 30-39的数据
+            // start = 30, count = 10
+            // 30 - 10
+            // fileCount = 应该为10，但是 fileTotal -fileStart = 101 - 30 = 71, pageSize = 10
+            // 但是如果现在只有一个文件，且要第一页
+            // fileStart = 0 - 0 = 0
+            // fileCount = 1 - 0 = 1
             int fileStart = (int) (start - menuTotal);
             int fileCount = Math.min((int) (fileTotal - fileStart), pageSize);
             fileList = fileService.getSubFileByRange(menuDTO.getMenuId(), currentUserId, fileStart, fileCount);

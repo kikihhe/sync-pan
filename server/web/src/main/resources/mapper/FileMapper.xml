@@ -18,12 +18,21 @@
         <result property="updateTime" column="update_time"/>
         <result property="deleted" column="deleted"/>
     </resultMap>
-    <select id="selectSubFileByRange" resultType="com.xiaohe.pan.server.web.model.domain.File">
+    <select id="selectSubFileByRange" resultMap="File">
         SELECT *
         FROM file
-        WHERE `menu_id` = #{menuId}
-            AND `owner` = #{userId}
-            LIMIT #{start}, #{count}
+        WHERE `owner` = #{userId}
+        <choose>
+            <!-- 当menuId为null时，查询根目录文件 -->
+            <when test="menuId == null">
+                AND `menu_id` IS NULL
+            </when>
+            <!-- 当menuId有具体值时，查询子目录文件 -->
+            <otherwise>
+                AND `menu_id` = #{menuId}
+            </otherwise>
+        </choose>
+        LIMIT #{start}, #{count}
     </select>
     <!--配置-->
     <!--id  接口对应的方法-->
