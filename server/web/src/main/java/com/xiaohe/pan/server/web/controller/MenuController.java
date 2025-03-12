@@ -91,9 +91,15 @@ public class MenuController {
     @PostMapping("/getSubMenuList")
     public Result<MenuVO> getSubMenuList(@RequestBody SubMenuListDTO menuDTO) throws Exception {
         Long currentUserId = SecurityContextUtil.getCurrentUser().getId();
-        // 首先验证当前目录是否为当前用户的
-        if (!Objects.isNull(menuDTO.getMenuId())) {
-            Menu menu = menuService.getByUserAndMenuId(currentUserId, menuDTO.getMenuId());
+        // 当前目录的信息
+        // menuId为空，当前处于一级目录
+        Menu menu = new Menu();
+        if (Objects.isNull(menuDTO.getMenuId())) {
+            menu.setMenuLevel(1);
+            menu.setOwner(currentUserId);
+        } else {
+            // 首先验证当前目录是否为当前用户的
+            menu = menuService.getByUserAndMenuId(currentUserId, menuDTO.getMenuId());
             if (Objects.isNull(menu)) {
                 return Result.error("请不要操作别人的数据");
             }
@@ -140,12 +146,15 @@ public class MenuController {
                 menuList = vo.getMenuList();
         }
 
-        return Result.success(new MenuVO()
+
+        MenuVO menuVO = new MenuVO()
+                .setCurrentMenu(menu)
                 .setSubMenuList(menuList)
                 .setSubFileList(fileList)
                 .setPageNum(pageNum + 1)
                 .setPageSize(pageSize)
-                .setTotal((int) (menuTotal + fileTotal)));
+                .setTotal((int) (menuTotal + fileTotal));
+        return Result.success(menuVO);
     }
     // 分场景数据处理方法
     private FileAndMenuListVO handleMixedData(SubMenuListDTO dto,

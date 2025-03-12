@@ -11,6 +11,7 @@ import java.util.List;
 @Data
 @Accessors(chain = true)
 public class MenuVO {
+    private Menu currentMenu;
     private Integer total;
     private Integer pageNum;
     private Integer pageSize;
