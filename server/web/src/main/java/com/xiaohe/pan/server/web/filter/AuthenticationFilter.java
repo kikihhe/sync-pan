@@ -26,7 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @WebFilter(filterName = "authenticationFilter")
-@Order(2)
+//@Order(1)
 public class AuthenticationFilter implements Filter {
 
     private static ObjectMapper objectMapper = new ObjectMapper();

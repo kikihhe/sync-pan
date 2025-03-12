@@ -6,11 +6,11 @@ import java.util.List;
 
 
 public interface MenuService extends IService<Menu> {
-    public List<Menu> getSubMenuByRange(Long menuId, Long userId, Integer start, Integer count);
+    public List<Menu> getSubMenuByRange(Long menuId, Long userId, String name, Integer orderBy, Integer desc, Integer start, Integer count);
 
     public Menu getByUserAndMenuId(Long userId, Long menuId);
 
-    public Long countByMenuId(Long menuId, Long userId);
+    public Long countByMenuId(Long menuId, Long userId, String menuName);
 
     public Boolean deleteMenu(Long menuId, Long userId);
 }

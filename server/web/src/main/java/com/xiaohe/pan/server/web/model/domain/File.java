@@ -37,14 +37,6 @@ public class File {
 
     private Long owner;
 
-    public String getIdentifier() {
-        return identifier;
-    }
-
-    public void setIdentifier(String identifier) {
-        this.identifier = identifier;
-    }
-
     /**
      * 文件唯一标识
      */
@@ -73,6 +65,14 @@ public class File {
     private LocalDateTime updateTime;
 
     private Boolean deleted;
+
+    public String getIdentifier() {
+        return identifier;
+    }
+
+    public void setIdentifier(String identifier) {
+        this.identifier = identifier;
+    }
 
     public LocalDateTime getCreateTime() {
         return createTime;

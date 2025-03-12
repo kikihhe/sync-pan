@@ -37,8 +37,8 @@ public class FileController {
      * 上传文件
      * @return
      */
-    @PostMapping("/upload")
-    public Result<String> updateFile(UploadFileDTO fileDTO) throws IOException {
+    @PostMapping(value = "/upload")
+    public Result<String> uploadFile(UploadFileDTO fileDTO) throws IOException {
         if (Objects.isNull(fileDTO)) {
             return Result.error("请选择文件并填写参数");
         }

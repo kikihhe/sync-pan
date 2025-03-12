@@ -10,9 +10,9 @@ import java.util.List;
 
 public interface FileService extends IService<File> {
 
-    public List<File> getSubFileByRange(Long menuId, Long userId, Integer start, Integer count);
+    public List<File> getSubFileByRange(Long menuId, Long userId, String name, Integer orderBy, Integer desc, Integer start, Integer count);
 
-    public Long countByMenuId(Long menuId, Long userId);
+    public Long countByMenuId(Long menuId, Long userId, String fileName);
 
     public Boolean uploadFile(MultipartFile multipartFile, UploadFileDTO fileDTO) throws IOException;
 

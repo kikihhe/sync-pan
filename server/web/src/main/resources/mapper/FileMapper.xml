@@ -32,6 +32,22 @@
                 AND `menu_id` = #{menuId}
             </otherwise>
         </choose>
+        <if test="name != null and name != ''">
+            AND file_name LIKE CONCAT('%', #{name}, '%')
+        </if>
+
+        <if test="orderBy == 1">
+            ORDER BY create_time ${desc == 1 ? 'DESC' : 'ASC'}
+        </if>
+        <if test="orderBy == 2">
+            ORDER BY update_time ${desc == 1 ? 'DESC' : 'ASC'}
+        </if>
+
+<!--        ORDER BY-->
+<!--        <choose>-->
+<!--            <when test="orderBy == 2">`update_time`</when>-->
+<!--            <otherwise>`create_time`</otherwise>-->
+<!--        </choose> DESC-->
         LIMIT #{start}, #{count}
     </select>
     <!--配置-->

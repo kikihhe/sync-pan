@@ -8,18 +8,16 @@ import com.xiaohe.pan.server.web.mapper.FileMapper;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import com.xiaohe.pan.server.web.service.FileService;
+import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import com.xiaohe.pan.storage.api.StorageService;
 import com.xiaohe.pan.storage.api.StoreTypeEnum;
 import com.xiaohe.pan.storage.api.context.DeleteFileContext;
 import com.xiaohe.pan.storage.api.context.StoreFileContext;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.session.StoreType;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -38,12 +36,12 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
      * 获取指定目录下的文件
      */
     @Override
-    public List<File> getSubFileByRange(Long menuId, Long userId, Integer start, Integer count) {
-        return baseMapper.selectSubFileByRange(menuId, userId, start, count);
+    public List<File> getSubFileByRange(Long menuId, Long userId, String name, Integer orderBy, Integer desc, Integer start, Integer count) {
+        return baseMapper.selectSubFileByRange(menuId, userId, name, orderBy, desc, start, count);
     }
 
     @Override
-    public Long countByMenuId(Long menuId, Long userId) {
+    public Long countByMenuId(Long menuId, Long userId, String fileName) {
         LambdaQueryWrapper<File> lambda = new LambdaQueryWrapper<>();
         if (Objects.isNull(menuId)) {
             lambda.isNull(File::getMenuId);
@@ -69,12 +67,12 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
             // 2. 保存文件的真实路径与展示路径/用户的联系（入库）
 //            file = FileConvert.INSTANCE.uploadDTOConvertTOFile(fileDTO);
             file.setFileName(fileDTO.getFileName());
-            file.setFileType(file.getFileType());
+            file.setFileType(fileDTO.getFileType());
             file.setMenuId(fileDTO.getMenuId());
-            file.setOwner(fileDTO.getOwner());
+            file.setOwner(SecurityContextUtil.getCurrentUser().getId());
             file.setRealPath(storeFileContext.getRealPath());
             file.setFileSize(multipartFile.getSize());
-            file.setIdentifier(file.getIdentifier());
+            file.setIdentifier(fileDTO.getIdentifier());
             Integer storageCode = StoreTypeEnum.getCodeByDesc(storageType);
             file.setStorageType(storageCode);
             int insert = baseMapper.insert(file);

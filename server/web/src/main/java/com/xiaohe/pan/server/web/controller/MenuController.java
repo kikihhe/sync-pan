@@ -8,10 +8,12 @@ import com.xiaohe.pan.server.web.convert.MenuConvert;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.SubMenuListDTO;
+import com.xiaohe.pan.server.web.model.vo.FileAndMenuListVO;
 import com.xiaohe.pan.server.web.model.vo.MenuVO;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.service.MenuService;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -48,56 +50,104 @@ public class MenuController {
                 return Result.error("请不要操作别人的数据");
             }
         }
+        // 参数预处理
+        // 搜索的类型，文件/目录
+        final Integer type = menuDTO.getType() == null ? 0 : menuDTO.getType();
+        // 排序规则，创建时间/修改时间
+        final Integer orderBy = menuDTO.getOrderBy() == null ? 1 : menuDTO.getOrderBy();
+        // 搜索name
+        final String searchName = StringUtils.trimToEmpty(menuDTO.getName());
+
         // 分页参数处理
         int pageSize = menuDTO.getPageSize();
         int pageNum = menuDTO.getPageNum();
         int start = pageNum * pageSize;
-        Long menuTotal = menuService.countByMenuId(menuDTO.getMenuId(), currentUserId);
-        Long fileTotal = fileService.countByMenuId(menuDTO.getMenuId(), currentUserId);
-        // 计算分页分布
+        Long menuTotal = 0L;
+        Long fileTotal = 0L;
+        // 0或1时统计目录
+        if (type != 2) {
+            menuTotal = menuService.countByMenuId(menuDTO.getMenuId(), currentUserId, searchName);
+        }
+        // 0或2时统计文件
+        if (type != 1) {
+            fileTotal = fileService.countByMenuId(menuDTO.getMenuId(), currentUserId, searchName);
+        }
         List<Menu> menuList = Collections.emptyList();
         List<File> fileList = Collections.emptyList();
 
-        // 当前页在目录范围内
-        if (start < menuTotal) {
-            // 如果目录33个，文件67个
-            // pageNum=3, pageSize=10, 那么 start=30
-            // 我需要 3 个目录，也就是 menuTotal - start
-            // 7个文件，并且 start=0, fileCount = start + pageSize - menuTotal
-            int dirCount = (int) Math.min(menuTotal - start, pageSize);
-            menuList = menuService.getSubMenuByRange(menuDTO.getMenuId(), currentUserId, start, dirCount);
-            // 需要补充文件数据
-            if (menuList.size() < pageSize) {
-                int fileCount = pageSize - menuList.size();
-                // 从第0页开始查
-                fileList = fileService.getSubFileByRange(menuDTO.getMenuId(), currentUserId, 0, fileCount);
-            }
-        } else {
-            // 2. 当前页在文件范围内, 只需要获取文件数据
-            // 两种可能:
-            // a. 33目录+67文件，可是用户要第七页，也就是 [start, count] = [60, 69]
-            // 那么我们的 start = start - menuTotal
-            // b. 现在没有目录，101个文件，要第4页，也就是 30-39的数据
-            // start = 30, count = 10
-            // 30 - 10
-            // fileCount = 应该为10，但是 fileTotal -fileStart = 101 - 30 = 71, pageSize = 10
-            // 但是如果现在只有一个文件，且要第一页
-            // fileStart = 0 - 0 = 0
-            // fileCount = 1 - 0 = 1
-            int fileStart = (int) (start - menuTotal);
-            int fileCount = Math.min((int) (fileTotal - fileStart), pageSize);
-            fileList = fileService.getSubFileByRange(menuDTO.getMenuId(), currentUserId, fileStart, fileCount);
+        // 场景处理
+        switch (type) {
+            // 只看目录
+            case 1:
+                menuList = getMenuData(menuDTO.getMenuId(), currentUserId, start, pageSize, searchName, orderBy, menuDTO.getDesc());
+                break;
+            // 只看文件
+            case 2:
+                fileList = getFileData(menuDTO.getMenuId(), currentUserId, start, pageSize, searchName, orderBy, menuDTO.getDesc());
+                break;
+            // 全部
+            default:
+                FileAndMenuListVO vo = handleMixedData(menuDTO, currentUserId, start, pageSize, menuTotal, fileTotal, searchName, orderBy, menuDTO.getDesc());
+                fileList = vo.getFileList();
+                menuList = vo.getMenuList();
         }
 
-        MenuVO menuVO = new MenuVO()
-            .setSubMenuList(menuList)
-            .setSubFileList(fileList)
-            .setPageNum(menuDTO.getPageNum() + 1)
-            .setPageSize(menuDTO.getPageSize())
-            .setTotal((int) (fileTotal + menuTotal));
-
-        return Result.success(menuVO);
+        return Result.success(new MenuVO()
+                .setSubMenuList(menuList)
+                .setSubFileList(fileList)
+                .setPageNum(pageNum + 1)
+                .setPageSize(pageSize)
+                .setTotal((int) (menuTotal + fileTotal)));
     }
+    // 分场景数据处理方法
+    private FileAndMenuListVO handleMixedData(SubMenuListDTO dto,
+                                 Long userId,
+                                 int start,
+                                 int pageSize,
+                                 long menuTotal,
+                                 long fileTotal,
+                                 String name,
+                                 int orderBy, Integer desc) {
+        FileAndMenuListVO vo = new FileAndMenuListVO();
+        if (start < menuTotal) {
+            int dirCount = (int) Math.min(menuTotal - start, pageSize);
+            List<Menu> menuList = menuService.getSubMenuByRange(dto.getMenuId(), userId, name, orderBy, desc, start, dirCount);
+            vo.setMenuList(menuList);
+            if (menuList.size() < pageSize) {
+                int fileCount = pageSize - menuList.size();
+                List<File> fileList = fileService.getSubFileByRange(dto.getMenuId(), userId, name, orderBy, desc, 0, fileCount);
+                vo.setFileList(fileList);
+            }
+        } else {
+            int fileStart = (int) (start - menuTotal);
+            int adjustedSize = Math.min(pageSize, (int) (fileTotal - fileStart));
+            List<File> fileList = fileService.getSubFileByRange(dto.getMenuId(), userId, name, orderBy, desc, fileStart, adjustedSize);
+            vo.setFileList(fileList);
+        }
+        return vo;
+    }
+
+    /**
+     * 获取目录数据
+     */
+    private List<Menu> getMenuData(Long menuId, Long userId, int start, int count, String name, Integer orderBy, Integer desc) {
+        if (count <= 0) {
+            return Collections.emptyList();
+        }
+
+        return menuService.getSubMenuByRange(menuId, userId, name, orderBy, desc, start, count);
+    }
+
+    /**
+     * 获取文件数据
+     */
+    private List<File> getFileData(Long menuId, Long userId, int start, int count, String name, Integer orderBy, Integer desc) {
+        if (count <= 0) {
+            return Collections.emptyList();
+        }
+        return fileService.getSubFileByRange(menuId, userId, name, orderBy, desc, start, count);
+    }
+
 
     /**
      * 添加目录

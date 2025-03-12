@@ -18,7 +18,7 @@ import java.io.IOException;
  * 支持跨域全局过滤器
  */
 @WebFilter(filterName = "corsFilter")
-@Order(1)
+//@Order(2)
 public class CorsFilter implements Filter {
 
     @Override

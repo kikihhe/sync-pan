@@ -10,7 +10,6 @@ public class UploadFileDTO {
     private String fileName;
     private String fileType;
     private Long menuId;
-    private Long owner;
     private String identifier;
     private MultipartFile multipartFile;
 //    private List<Long> fileIdList;
