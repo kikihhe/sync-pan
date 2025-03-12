@@ -35,6 +35,54 @@ public class MenuController {
     @Autowired
     private FileService fileService;
 
+
+
+    /**
+     * 添加目录
+     * menuLevel 需要前端传入
+     * @param menu
+     * @return
+     */
+    @PostMapping("/addMenu")
+    public Result<String> addMenu(@RequestBody Menu menu) {
+        menu.setOwner(SecurityContextUtil.getCurrentUser().getId());
+        boolean save = menuService.save(menu);
+        if (!save) {
+            return Result.error("目录添加失败，请稍后再试");
+        }
+        return Result.success("目录添加成功");
+    }
+
+    @PostMapping("/updateMenu")
+    public Result<String> updateMenu(@RequestBody Menu menu) throws RuntimeException {
+        Long userId = SecurityContextUtil.getCurrentUser().getId();
+        if (!Objects.equals(userId, menu.getOwner())) {
+            throw new BusinessException("权限不足");
+        }
+        boolean b = menuService.updateById(menu);
+        if (!b) {
+            return Result.error("修改失败");
+        }
+        return Result.success("修改成功");
+    }
+
+    /**
+     * 删除目录，同步删除它的子目录以及文件
+     * @param menuId
+     * @return
+     */
+    @PostMapping("/deleteMenu")
+    public Result<String> deleteMenu(@RequestParam Long menuId) throws RuntimeException {
+        Long userId = SecurityContextUtil.getCurrentUser().getId();
+
+        Menu menu = menuService.getByUserAndMenuId(userId, menuId);
+        if (Objects.isNull(menu)) {
+            throw new BusinessException("目录不存在");
+        }
+        menuService.deleteMenu(menuId, userId);
+        return Result.success("删除成功");
+    }
+
     /**
      * 获取指定目录的子目录
      * 若 menuId 为空，则获取指定用户的所有一级目录
@@ -146,53 +194,6 @@ public class MenuController {
             return Collections.emptyList();
         }
         return fileService.getSubFileByRange(menuId, userId, name, orderBy, desc, start, count);
-    }
-
-
-    /**
-     * 添加目录
-     * menuLevel 需要前端传入
-     * @param menu
-     * @return
-     */
-    @PostMapping("/addMenu")
-    public Result<String> addMenu(@RequestBody Menu menu) {
-        menu.setOwner(SecurityContextUtil.getCurrentUser().getId());
-        boolean save = menuService.save(menu);
-        if (!save) {
-            return Result.error("目录添加失败，请稍后再试");
-        }
-        return Result.success("目录添加成功");
-    }
-
-    @PostMapping("/updateMenu")
-    public Result<String> updateMenu(@RequestBody Menu menu) throws RuntimeException {
-        Long userId = SecurityContextUtil.getCurrentUser().getId();
-        if (!Objects.equals(userId, menu.getOwner())) {
-            throw new BusinessException("权限不足");
-        }
-        boolean b = menuService.updateById(menu);
-        if (!b) {
-            return Result.error("修改失败");
-        }
-        return Result.success("修改成功");
-    }
-
-    /**
-     * 删除目录，同步删除它的子目录以及文件
-     * @param menuId
-     * @return
-     */
-    @PostMapping("/deleteMenu")
-    public Result<String> deleteMenu(@RequestParam Long menuId) throws RuntimeException {
-        Long userId = SecurityContextUtil.getCurrentUser().getId();
-
-        Menu menu = menuService.getByUserAndMenuId(userId, menuId);
-        if (Objects.isNull(menu)) {
-            throw new BusinessException("目录不存在");
-        }
-        menuService.deleteMenu(menuId, userId);
-        return Result.success("删除成功");
     }
 
 }
