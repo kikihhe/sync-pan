@@ -13,4 +13,6 @@ public interface MenuService extends IService<Menu> {
     public Long countByMenuId(Long menuId, Long userId, String menuName);
 
     public Boolean deleteMenu(Long menuId, Long userId);
+
+    public Boolean checkNameDuplicate(Long menuId, String name);
 }

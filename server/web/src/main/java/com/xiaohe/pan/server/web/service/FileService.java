@@ -17,4 +17,6 @@ public interface FileService extends IService<File> {
     public Boolean uploadFile(MultipartFile multipartFile, UploadFileDTO fileDTO) throws IOException;
 
     public void deleteFile(List<Long> fileList) throws IOException;
+
+    public Boolean checkNameDuplicate(Long menuId, String name);
 }

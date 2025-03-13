@@ -96,4 +96,17 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
         fileService.removeBatchByIds(fileIdList);
         return true;
     }
+
+    @Override
+    public Boolean checkNameDuplicate(Long menuId, String name) {
+        LambdaQueryWrapper<Menu> lambda = new LambdaQueryWrapper<>();
+        if (Objects.isNull(menuId)) {
+            lambda.eq(Menu::getMenuLevel, 1);
+        } else {
+            lambda.eq(Menu::getParentId, menuId);
+        }
+        lambda.eq(Menu::getMenuName, name);
+        Long count = baseMapper.selectCount(lambda);
+        return count > 0;
+    }
 }

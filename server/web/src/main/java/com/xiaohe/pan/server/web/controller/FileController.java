@@ -2,15 +2,18 @@ package com.xiaohe.pan.server.web.controller;
 
 import com.xiaohe.pan.common.util.PageVO;
 import com.xiaohe.pan.common.util.Result;
+import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.FileChunk;
 import com.xiaohe.pan.server.web.model.dto.DeleteFileDTO;
 import com.xiaohe.pan.server.web.model.dto.MergeChunkFileDTO;
+import com.xiaohe.pan.server.web.model.dto.UpdateFileDTO;
 import com.xiaohe.pan.server.web.model.dto.UploadChunkFileDTO;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import com.xiaohe.pan.server.web.model.vo.FileChunkVO;
 import com.xiaohe.pan.server.web.service.FileChunkService;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,6 +45,10 @@ public class FileController {
         if (Objects.isNull(fileDTO)) {
             return Result.error("请选择文件并填写参数");
         }
+        Boolean nameDuplicate = fileService.checkNameDuplicate(fileDTO.getMenuId(), fileDTO.getFileName());
+        if (nameDuplicate) {
+            return Result.error("文件名重复!");
+        }
         fileService.uploadFile(fileDTO.getMultipartFile(), fileDTO);
         return Result.success("上传成功");
     }
@@ -53,6 +60,21 @@ public class FileController {
         }
         fileService.deleteFile(fileDTO.getFileList());
         return Result.success("删除成功");
+    }
+
+    @PostMapping("/updateFile")
+    public Result<String> updateFileName(@RequestBody UpdateFileDTO file) throws RuntimeException {
+        if (Objects.isNull(file.getId())) {
+            return Result.error("修改失败");
+        }
+        File byId = fileService.getById(file.getId());
+        if (!Objects.equals(byId.getOwner(), file.getOwner())) {
+            return Result.error("权限不足");
+        }
+        File rawFile = new File();
+        BeanUtils.copyProperties(file, rawFile);
+        fileService.updateById(rawFile);
+        return Result.success("修改成功");
     }
 
     @PostMapping("/uploadChunk")

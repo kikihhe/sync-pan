@@ -6,6 +6,7 @@ import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.server.web.convert.FileConvert;
 import com.xiaohe.pan.server.web.mapper.FileMapper;
 import com.xiaohe.pan.server.web.model.domain.File;
+import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
@@ -104,5 +105,15 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
 
         // 3. 取消关联
         baseMapper.deleteBatchIds(fileList);
+    }
+
+
+    @Override
+    public Boolean checkNameDuplicate(Long menuId, String name) {
+        LambdaQueryWrapper<File> lambda = new LambdaQueryWrapper<>();
+        lambda.eq(File::getMenuId, menuId);
+        lambda.eq(File::getFileName, name);
+        Long count = baseMapper.selectCount(lambda);
+        return count > 0;
     }
 }

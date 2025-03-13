@@ -46,6 +46,10 @@ public class MenuController {
     @PostMapping("/addMenu")
     public Result<String> addMenu(@RequestBody Menu menu) {
         menu.setOwner(SecurityContextUtil.getCurrentUser().getId());
+        Boolean nameDuplicate = menuService.checkNameDuplicate(menu.getParentId(), menu.getMenuName());
+        if (nameDuplicate) {
+            return Result.error("目录名重复!");
+        }
         boolean save = menuService.save(menu);
         if (!save) {
             return Result.error("目录添加失败，请稍后再试");
