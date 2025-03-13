@@ -56,4 +56,8 @@ public class StoreFileChunkContext implements Serializable {
      */
     private Long userId;
 
+    /**
+     * 合并标志
+     */
+    private Boolean mergeFlag;
 }

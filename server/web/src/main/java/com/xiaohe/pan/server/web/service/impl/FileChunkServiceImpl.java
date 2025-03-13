@@ -56,7 +56,7 @@ public class FileChunkServiceImpl extends ServiceImpl<FileChunkMapper, FileChunk
         Long userId = SecurityContextUtil.getCurrentUser().getId();
         StoreFileChunkContext context = new StoreFileChunkContext();
         context.setUserId(userId);
-        context.setFilename(chunkFileDTO.getFileName());
+        context.setFilename(chunkFileDTO.getChunkName());
         context.setChunkNumber(context.getChunkNumber());
         context.setTotalChunks(chunkFileDTO.getTotalChunks());
         context.setCurrentChunkSize(chunkFileDTO.getCurrentChunkSize());
