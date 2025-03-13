@@ -61,7 +61,7 @@ public class FileChunk {
      */
     private Integer storageType;
 
-    @TableField(value = "create_time",fill = FieldFill.INSERT_UPDATE)
+    @TableField(value = "create_time",fill = FieldFill.INSERT)
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
