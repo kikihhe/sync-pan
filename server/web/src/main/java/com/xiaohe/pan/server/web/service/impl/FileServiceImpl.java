@@ -13,11 +13,13 @@ import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import com.xiaohe.pan.storage.api.StorageService;
 import com.xiaohe.pan.storage.api.StoreTypeEnum;
 import com.xiaohe.pan.storage.api.context.DeleteFileContext;
+import com.xiaohe.pan.storage.api.context.ReadFileContext;
 import com.xiaohe.pan.storage.api.context.StoreFileContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -115,5 +117,22 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         lambda.eq(File::getFileName, name);
         Long count = baseMapper.selectCount(lambda);
         return count > 0;
+    }
+
+    @Override
+    public void preview(Long fileId, HttpServletResponse response) throws IOException {
+        File file = baseMapper.selectById(fileId);
+        if (Objects.isNull(file)) {
+            throw new BusinessException("文件不存在");
+        }
+        if (!Objects.equals(file.getOwner(), SecurityContextUtil.getCurrentUser().getId())) {
+            throw new BusinessException("权限不足");
+        }
+        // 真实路径
+        String realPath = file.getRealPath();
+        ReadFileContext readFileContext = new ReadFileContext()
+                .setRealPath(realPath)
+                .setOutputStream(response.getOutputStream());
+        storageService.realFile(readFileContext);
     }
 }

@@ -1,6 +1,7 @@
 package com.xiaohe.pan.storage.api.context;
 
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 import java.io.OutputStream;
 import java.io.Serializable;
@@ -9,6 +10,7 @@ import java.io.Serializable;
  * 文件读取的上下文实体信息
  */
 @Data
+@Accessors(chain = true)
 public class ReadFileContext implements Serializable {
 
     private static final long serialVersionUID = 2506771761529717302L;

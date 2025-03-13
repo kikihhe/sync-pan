@@ -5,6 +5,7 @@ import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
@@ -19,4 +20,6 @@ public interface FileService extends IService<File> {
     public void deleteFile(List<Long> fileList) throws IOException;
 
     public Boolean checkNameDuplicate(Long menuId, String name);
+
+    void preview(Long fileId, HttpServletResponse response) throws IOException;
 }
