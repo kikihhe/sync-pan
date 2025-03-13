@@ -63,6 +63,10 @@ public class MenuController {
         if (!Objects.equals(userId, menu.getOwner())) {
             throw new BusinessException("权限不足");
         }
+        Boolean nameDuplicate = menuService.checkNameDuplicate(menu.getParentId(), menu.getMenuName());
+        if (nameDuplicate) {
+            return Result.error("目录名称重复");
+        }
         boolean b = menuService.updateById(menu);
         if (!b) {
             return Result.error("修改失败");

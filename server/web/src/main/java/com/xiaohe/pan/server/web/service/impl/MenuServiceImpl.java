@@ -2,6 +2,7 @@ package com.xiaohe.pan.server.web.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.server.web.mapper.FileMapper;
 import com.xiaohe.pan.server.web.mapper.MenuMapper;
 import com.xiaohe.pan.server.web.model.domain.File;
@@ -9,6 +10,7 @@ import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.service.MenuService;
 import com.xiaohe.pan.server.web.util.ApplicationContextUtil;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,13 +76,17 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
         } else {
             menuLambda.eq(Menu::getParentId, menuId);
         }
+        int delete = baseMapper.deleteById(menuId);
+        if (delete <= 0) {
+            throw new BusinessException("删除失败!");
+        }
         menuLambda.eq(Menu::getOwner, userId);
         List<Menu> menuList = baseMapper.selectList(menuLambda);
         if (!CollectionUtils.isEmpty(menuList)) {
             // 2. 递归删除子目录
-            MenuServiceImpl beanByClass = ApplicationContextUtil.getBeanByClass(MenuServiceImpl.class);
+            MenuService menuService = (MenuService) AopContext.currentProxy();
             menuList.forEach(menu -> {
-                beanByClass.deleteMenu(menu.getId(), userId);
+                menuService.deleteMenu(menu.getId(), userId);
             });
         }
 

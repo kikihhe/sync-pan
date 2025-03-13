@@ -18,7 +18,7 @@
     <select id="selectSubMenuByRange" resultType="com.xiaohe.pan.server.web.model.domain.Menu">
         SELECT *
         FROM menu
-        WHERE owner = #{userId}
+        WHERE owner = #{userId} AND `deleted` = 0
         <choose>
             <when test="menuId == null">
                 AND menu_level = 1

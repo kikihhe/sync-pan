@@ -21,7 +21,7 @@
     <select id="selectSubFileByRange" resultMap="File">
         SELECT *
         FROM file
-        WHERE `owner` = #{userId}
+        WHERE `owner` = #{userId} and `deleted` = 0
         <choose>
             <!-- 当menuId为null时，查询根目录文件 -->
             <when test="menuId == null">
