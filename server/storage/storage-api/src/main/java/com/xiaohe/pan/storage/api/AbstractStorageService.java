@@ -27,7 +27,7 @@ public abstract class AbstractStorageService implements StorageService {
 
 
     @Override
-    public void realFile(ReadFileContext context) throws IOException {
+    public void readFile(ReadFileContext context) throws IOException {
         checkReadFileContext(context);
         doRealFile(context);
     }

@@ -35,10 +35,12 @@ public class HttpUtil {
          * 允许认证
          */
         CORS_CREDENTIALS("Access-Control-Allow-Credentials", "true"),
+
+        CORS_EXPOSE_HEADERS("Access-Control-", "Content-Disposition"),
         /**
          * 允许远程调用的请求类型
          */
-        CORS_METHODS("Access-Control-Allow-Methods", "POST, GET, PATCH, DELETE, PUT"),
+        CORS_METHODS("Access-Control-Allow-Methods", "POST, GET, PATCH, DELETE, PUT, OPTIONS"),
         /**
          * 指定本次预检请求的有效期，单位是秒
          */

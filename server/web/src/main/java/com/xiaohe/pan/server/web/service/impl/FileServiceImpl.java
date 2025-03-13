@@ -3,10 +3,8 @@ package com.xiaohe.pan.server.web.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiaohe.pan.common.exceptions.BusinessException;
-import com.xiaohe.pan.server.web.convert.FileConvert;
 import com.xiaohe.pan.server.web.mapper.FileMapper;
 import com.xiaohe.pan.server.web.model.domain.File;
-import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
@@ -130,9 +128,10 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         }
         // 真实路径
         String realPath = file.getRealPath();
+        // 将真实文件内容读取到 response.outputStream 中
         ReadFileContext readFileContext = new ReadFileContext()
                 .setRealPath(realPath)
                 .setOutputStream(response.getOutputStream());
-        storageService.realFile(readFileContext);
+        storageService.readFile(readFileContext);
     }
 }

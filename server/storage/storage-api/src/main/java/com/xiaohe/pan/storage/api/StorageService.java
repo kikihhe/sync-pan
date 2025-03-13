@@ -47,5 +47,5 @@ public interface StorageService {
      * @param context
      * @throws IOException
      */
-    void realFile(ReadFileContext context) throws IOException;
+    void readFile(ReadFileContext context) throws IOException;
 }
