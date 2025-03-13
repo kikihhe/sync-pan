@@ -88,7 +88,7 @@ public class FileController {
      * @return
      */
     @GetMapping("/preview")
-    public void previewFile(@RequestParam("fileId") Long fileId, HttpServletRequest request, HttpServletResponse response) throws RuntimeException {
+    public void previewFile(@RequestParam("fileId") Long fileId, HttpServletRequest request, HttpServletResponse response) throws RuntimeException, IOException {
         if (Objects.isNull(fileId)) {
             throw new BusinessException("请选择文件");
         }
