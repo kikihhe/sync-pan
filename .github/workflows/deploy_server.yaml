@@ -24,6 +24,18 @@ jobs:
       - name: Build server module with Maven
         run: mvn clean package -pl server -am -DskipTests
 
+      # 调试：检查 web/target/ 目录
+      - name: Debug web/target directory
+        run: |
+          ls -R server/web/target
+          if [ -f "server/web/target/web-1.0-SNAPSHOT.jar" ]; then
+            echo "JAR file exists: server/web/target/web-1.0-SNAPSHOT.jar"
+          else
+            echo "JAR file does not exist: server/web/target/web-1.0-SNAPSHOT.jar"
+            exit 1
+          fi
+          
+
       # 构建 Docker 镜像
       - name: Build Docker image
         run: docker build -t sync-pan-server:latest ./server
