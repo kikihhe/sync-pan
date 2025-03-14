@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--日志级别以及优先级排序: OFF > FATAL > ERROR > WARN > INFO > DEBUG > TRACE > ALL -->
+<!--Configuration后面的status，这个用于设置log4j2自身内部的信息输出，可以不设置，当设置成trace时，你会看到log4j2内部各种详细输出-->
+<!--monitorInterval：Log4j能够自动检测修改配置 文件和重新配置本身，设置间隔秒数-->
+<Configuration status="WARN" monitorInterval="5">
+    <!--变量配置-->
+    <!-- 格式化输出：%date表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度 %msg：日志消息，%n是换行符-->
+    <!-- %logger{36} 表示 Logger 名字最长36个字符 -->
+    <Properties>
+        <!-- 定义日志格式 -->
+        <Property name="LOG_DATEFORMAT_PATTERN">yyyy-MM-dd HH:mm:ss.SSS</Property>
+        <Property name="LOG_EXCEPTION_CONVERSION_WORD">%xwEx</Property>
+        <Property name="LOG_LEVEL_PATTERN">%5p</Property>
+        <Property name="LOG_PATTERN">%clr{%d{${sys:LOG_DATEFORMAT_PATTERN}}}{faint} %clr{${sys:LOG_LEVEL_PATTERN}} %clr{%pid}{magenta} %clr{---}{faint} %clr{[%15.15t]}{faint} %clr{%-40.40c{1.}}{cyan} %clr{:}{faint} %m%n${sys:LOG_EXCEPTION_CONVERSION_WORD}
+        </Property>
+        <!-- 输出无颜色,文件中的颜色字符会乱码-->
+        <Property name="FILE_LOG_PATTERN">%d{${sys:LOG_DATEFORMAT_PATTERN}} ${sys:LOG_LEVEL_PATTERN} %pid --- [%t] %-40.40c{1.} : %m%n${sys:LOG_EXCEPTION_CONVERSION_WORD}
+        </Property>
+        <!-- 定义文件名变量 -->
+        <Property name="FILE_PATH">logs/</Property>
+        <!--        <Property name="FILE_NAME">info.log</Property>-->
+    </Properties>
+    <!-- 定义Appender，即目的地 -->
+    <Appenders>
+        <!-- 定义输出到屏幕 -->
+        <Console name="console" target="SYSTEM_OUT">
+            <!-- 日志格式引用上面定义的LOG_PATTERN -->
+            <PatternLayout pattern="${LOG_PATTERN}" charset="UTF-8"/>
+        </Console>
+        <!-- 定义输出到文件,文件名引用上面定义的FILE_NAME -->
+        <RollingFile name="info" bufferedIO="true" fileName="${FILE_PATH}/info.log"
+                     filePattern="${FILE_PATH}/%d{yyyy-MM-dd}info-%i.log.gz">
+            <!--只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
+            <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="${FILE_LOG_PATTERN}" charset="UTF-8"/>
+            <Policies>
+                <!--interval属性用来指定多久滚动一次，1天创建一个文件-->
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <!-- 根据文件大小自动切割日志 -->
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+            <!-- DefaultRolloverStrategy属性如不设置，则默认为最多同一文件夹下7个文件开始覆盖-->
+            <!-- 保留最近20份 -->
+            <DefaultRolloverStrategy max="20">
+                <Delete basePath="${FILE_PATH}">
+                    <IfFileName glob="*info*.log.gz"/>
+                    <IfLastModified age="30d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+        <!-- error单独写入日志,不需要 直接注释整个RollingFile -->
+        <RollingFile name="error" bufferedIO="true" fileName="${FILE_PATH}/error.log"
+                     filePattern="${FILE_PATH}/%d{yyyy-MM-dd}error-%i.log.gz">
+            <!--控制台只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
+            <ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="${FILE_LOG_PATTERN}" charset="UTF-8"/>
+            <Policies>
+                <!--interval属性用来指定多久滚动一次，1天创建一个文件-->
+                <!-- 根据文件大小自动切割日志 -->
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="1MB"/>
+            </Policies>
+            <!-- DefaultRolloverStrategy属性如不设置，则默认为最多同一文件夹下7个文件开始覆盖-->
+            <!-- 保留最近20份 -->
+            <DefaultRolloverStrategy max="20">
+                <Delete basePath="${FILE_PATH}">
+                    <IfFileName glob="*error*.log.gz"/>
+                    <IfLastModified age="30d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <!--过滤掉spring和mybatis的一些无用的DEBUG信息-->
+        <!--        <Logger name="org.apache.ibatis" level="debug" additivity="false">-->
+        <!--            <AppenderRef ref="console"/>-->
+        <!--        </Logger>-->
+        <!--监控系统信息-->
+        <!--若是additivity设为false，则子Logger 只会在自己的appender里输出，而不会在 父Logger 的appender里输出。不会输出未捕捉的异常及jvm异常-->
+        <!--        <Logger name="org.springframework" level="info" additivity="false">-->
+        <!--            <AppenderRef ref="Console"/>-->
+        <!--        </Logger>-->
+        <!-- 指定路径的日志打印级别 -->
+        <!--        <Logger name="com.fjc.demo01.controller.HelloController" level="trace" additivity="false">-->
+        <!--            <AppenderRef ref="Console"/>-->
+        <!--        </Logger>-->
+        <Root level="info">
+            <!-- 对info级别的日志，输出到console -->
+            <AppenderRef ref="console" level="info"/>
+            <!-- 对error级别的日志，输出到err，即上面定义的RollingFile -->
+            <AppenderRef ref="info"/>
+            <AppenderRef ref="error"/>
+        </Root>
+    </Loggers>
+</Configuration>

@@ -5,49 +5,45 @@ on:
     branches:
       - deploy
 
-
 jobs:
   build-and-deploy:
-    name: 构建并发布
-    runs-on: centos-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    runs-on: ubuntu-latest
 
-      - name: Setup jdk version
-        uses: actions/setup-java@v3
+    steps:
+      # 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # 设置 JDK 8
+      - name: Set up JDK 8
+        uses: actions/setup-java@v1
         with:
           java-version: '8'
-          distribution: 'temurin'
 
-      # 生成 WAR/JAR 文件
-      - name: Build with Maven
-        run: mvn clean package
+      # 构建 server 模块
+      - name: Build server module with Maven
+        run: mvn clean package -pl server -am -DskipTests
 
+      # 构建 Docker 镜像
       - name: Build Docker image
-        run: docker build -t image-name .
+        run: docker build -t sync-pan-server:latest ./server
 
-      - name: 将docker镜像打包为tar文件
-        run: docker save -o image-name.tar image-name
+      # 保存 Docker 镜像为 tar 文件
+      - name: Save Docker image
+        run: docker save -o sync-pan-server.tar sync-pan-server:latest
 
-      - name: 将 tar 文件上传至服务器
-        uses: appleboy/scp-action@v0.1.3
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          source: "image-name.tar"
-          target: "/tmp/your-image-name.tar"
+      # 将 Docker 镜像传输到服务器
+      - name: Copy Docker image to server
+        run: |
+          sshpass -p "${{ secrets.SERVER_PASSWORD }}" scp -o StrictHostKeyChecking=no sync-pan-server.tar root@8.137.53.199:/root/workspace/sync-pan/sync-pan-server.tar
 
-
-      - name: 加载 docker 镜像并运行
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          script: |
-            docker load -i /tmp/image-name.tar
-            docker stop container-name || true
-            docker rm container-name || true
-            docker run -d --name container-name -p 8080:80 image-name
+      # 在服务器上加载并运行 Docker 镜像
+      - name: Load and run Docker image on server
+        run: |
+          sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no root@8.137.53.199 << 'EOF'
+          cd /root/workspace/sync-pan
+          docker load -i sync-pan-server.tar
+          docker stop sync-pan-server || true
+          docker rm sync-pan-server || true
+          docker run -d --name sync-pan-server -p 8080:8080 sync-pan-server:latest
+          EOF
