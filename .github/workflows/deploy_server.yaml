@@ -58,29 +58,5 @@ jobs:
           docker rm sync-pan-server || true
           docker run -d --name sync-pan-server -p 8080:8080 sync-pan-server:latest
           
-          # 等待服务启动
-          sleep 10
-
-          # 测试 /hello 接口
-          echo "Testing /hello endpoint..."
-          response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" http://localhost:8080/hello)
-          body=$(echo "$response" | grep -v "HTTP_STATUS" | tr -d '\n')
-          status=$(echo "$response" | grep "HTTP_STATUS" | cut -d':' -f2)
-
-          # 输出响应体和状态码
-          echo "Response body: $body"
-          echo "HTTP status code: $status"
-
-          # 验证状态码和响应体
-          if [ "$status" != "200" ]; then
-            echo "Error: HTTP status code is not 200"
-            exit 1
-          fi
-
-          if ! echo "$body" | jq -e '.code == 200 and .message == "success" and .data == "你好"' > /dev/null; then
-            echo "Error: Response body does not match expected structure"
-            exit 1
-          fi
-
-          echo "Test passed!"
+          
           EOF

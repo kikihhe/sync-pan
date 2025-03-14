@@ -125,7 +125,6 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.xiaohe.pan.server.web.SyncPanWebApplication</mainClass>
-                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>
