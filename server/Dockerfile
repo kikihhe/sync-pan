@@ -5,7 +5,7 @@ FROM openjdk:8-jre-slim
 WORKDIR /app
 
 # 将构建好的 JAR 文件复制到容器中
-COPY target/web-1.0-SNAPSHOT.jar app.jar
+COPY web/target/web-1.0-SNAPSHOT.jar app.jar
 
 # 暴露端口
 EXPOSE 8080
