@@ -4,9 +4,11 @@ server:
 
 
 spring:
-#  redis:
-#    database: 1
-#    host: 127.0.0.1
+  redis:
+    database: 0
+    host: 8.137.53.199
+    username: default
+    password: 123456
   application:
     name: r-pan-server
   output:
@@ -23,7 +25,7 @@ spring:
   datasource:
     username: root
     password: 123456
-    url: jdbc:mysql://127.0.0.1:3306/sync_pan?characterEncoding=utf8&serverTimeZone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://8.137.53.199:3306/sync_pan?characterEncoding=utf8&serverTimeZone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:
