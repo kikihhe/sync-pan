@@ -27,7 +27,6 @@ jobs:
       # 调试：检查 web/target/ 目录
       - name: Debug web/target directory
         run: |
-          ls -R server/web/target
           if [ -f "server/web/target/web-1.0-SNAPSHOT.jar" ]; then
             echo "JAR file exists: server/web/target/web-1.0-SNAPSHOT.jar"
           else
