@@ -53,10 +53,12 @@ jobs:
         run: |
           sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no root@8.137.53.199 << 'EOF'
           cd /root/workspace/sync-pan
-          docker load -i sync-pan-server.tar
           docker stop sync-pan-server || true
           docker rm sync-pan-server || true
-          docker run -d --name sync-pan-server -p 8080:8080 sync-pan-server:latest
+          docker rmi sync-pan-server || true
           
+          docker load -i sync-pan-server.tar
+          
+          docker run -d --name sync-pan-server -p 8080:8080 sync-pan-server:latest
           
           EOF
