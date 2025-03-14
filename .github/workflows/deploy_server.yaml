@@ -22,7 +22,7 @@ jobs:
 
       # 构建 server 模块
       - name: Build server module with Maven
-        run: mvn clean package -pl server -am -DskipTests
+        run: mvn package -DskipTests
 
       # 调试：检查 web/target/ 目录
       - name: Debug web/target directory
