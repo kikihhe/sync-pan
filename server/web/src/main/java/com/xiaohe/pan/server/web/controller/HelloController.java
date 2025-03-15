@@ -20,13 +20,9 @@ public class HelloController {
     @Autowired
     private LocalStorageProperties properties;
 
-    @Autowired
-    private StorageService storageService;
-
     @GetMapping
     public Result<String> hello() throws IOException {
         System.out.println(properties);
-        storageService.store(new StoreFileContext());
         return Result.success("你好");
     }
 

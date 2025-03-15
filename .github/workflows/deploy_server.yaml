@@ -64,3 +64,13 @@ jobs:
           docker run -d --name sync-pan-server -p 8080:8080 sync-pan-server:latest
           
           EOF
+
+      # 发送请求测试
+      - name: Test
+        run: |    
+          # 等待运行成功
+          sleep 5
+          
+          curl GET http://localhost:8080/hello
+          
+          EOF
