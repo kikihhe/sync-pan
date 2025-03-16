@@ -1,63 +1,50 @@
 package com.xiaohe.pan.server.web.model.domain;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 
-/**
- * 文件分片
- */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Accessors(chain = true)
-public class FileChunk extends BaseDomain {
-    /**
-     * 主键
-     */
-    @TableId(value = "id", type = IdType.AUTO)
+@TableName("device")
+public class Device extends BaseDomain {
+
     private Long id;
 
+    private Long userId;
+
     /**
-     * 文件唯一标识
+     * 设备名称，用户不指定时与 deviceKey 相同
      */
-    private String identifier;
+    private String deviceName;
 
     /**
-     * 分片真实的存储路径
+     * 后端给设备生成的唯一标识
      */
-    private String realPath;
+    private String deviceKey;
 
     /**
-     * 分片编号
+     * 同步密钥
      */
-    private Integer chunkNumber;
-
-    private Long owner;
+    private String secret;
 
     /**
-     * 过期时间
+     * 最近的心跳时间
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
-    private LocalDateTime expirationTime;
+    private LocalDateTime lastHeartbeat;
 
     /**
-     * 存储类型
+     * 设备状态
      */
-    private Integer storageType;
+    private Integer status;
 }
