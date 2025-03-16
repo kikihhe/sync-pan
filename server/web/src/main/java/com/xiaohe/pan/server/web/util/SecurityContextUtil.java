@@ -11,4 +11,8 @@ public class SecurityContextUtil {
     public static User getCurrentUser() {
         return THREAD_LOCAL.get();
     }
+
+    public static Long getCurrentUserId() {
+        return THREAD_LOCAL.get().getId();
+    }
 }
