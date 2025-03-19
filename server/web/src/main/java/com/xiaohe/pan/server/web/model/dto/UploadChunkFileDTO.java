@@ -11,6 +11,12 @@ public class UploadChunkFileDTO {
     private String identifier;
 
     /**
+     * 分片的唯一标识
+     * 断点重连后通过 chunk_identifier 判断分片是否需要再次传输
+     */
+    private String chunkIdentifier;
+
+    /**
      * 分片名称，为该分片的md5
      */
     private String chunkName;
@@ -39,7 +45,7 @@ public class UploadChunkFileDTO {
     private Long totalSize;
 
     /**
-     * 分片所属文件 所在的目录
+     * 分片所属文件所在的目录
      */
     private Long menuId;
 

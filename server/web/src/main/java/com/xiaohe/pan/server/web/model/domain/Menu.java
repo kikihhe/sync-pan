@@ -46,6 +46,11 @@ public class Menu extends BaseDomain {
     private Long parentId;
 
     /**
+     * 对外展示的路径
+     */
+    private String displayPath;
+
+    /**
      * 所属用户
      */
     private Long owner;

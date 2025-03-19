@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.server.web.mapper.FileMapper;
+import com.xiaohe.pan.server.web.mapper.MenuMapper;
 import com.xiaohe.pan.server.web.model.domain.File;
+import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
@@ -29,6 +31,9 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
 
     @Resource
     private StorageService storageService;
+
+    @Resource
+    private MenuMapper menuMapper;
 
     @Value("${storage.type}")
     private String storageType;
@@ -67,6 +72,12 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
 
             // 2. 保存文件的真实路径与展示路径/用户的联系（入库）
 //            file = FileConvert.INSTANCE.uploadDTOConvertTOFile(fileDTO);
+            if (!Objects.isNull(fileDTO.getMenuId())) {
+                Menu menu = menuMapper.selectById(fileDTO.getMenuId());
+                file.setDisplayPath(menu.getDisplayPath() + "/" + fileDTO.getFileName());
+            } else {
+                file.setDisplayPath("/" + file.getFileName());
+            }
             file.setFileName(fileDTO.getFileName());
             file.setFileType(fileDTO.getFileType());
             file.setMenuId(fileDTO.getMenuId());

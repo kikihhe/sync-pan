@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiaohe.pan.common.util.FileUtils;
+import com.xiaohe.pan.server.web.convert.FileChunkConvert;
 import com.xiaohe.pan.server.web.mapper.FileChunkMapper;
 import com.xiaohe.pan.server.web.mapper.FileMapper;
 import com.xiaohe.pan.server.web.model.domain.File;
@@ -52,7 +53,17 @@ public class FileChunkServiceImpl extends ServiceImpl<FileChunkMapper, FileChunk
      */
     @Override
     public Boolean uploadChunkFile(UploadChunkFileDTO chunkFileDTO) throws IOException {
-        // 1. 保存真实文件
+        // 0. 判断之前是否已经上传了该分片
+        LambdaQueryWrapper<FileChunk> lambda = new LambdaQueryWrapper<>();
+        lambda.eq(FileChunk::getChunkIdentifier, chunkFileDTO.getChunkIdentifier());
+        lambda.eq(FileChunk::getIdentifier, chunkFileDTO.getIdentifier());
+        FileChunk one = getOne(lambda);
+        if (!Objects.isNull(one)) {
+            // 已经上传过，不再上传
+            return false;
+        }
+        lambda.clear();
+        // 1. 保存真实的分片文件
         Long userId = SecurityContextUtil.getCurrentUser().getId();
         StoreFileChunkContext context = new StoreFileChunkContext();
         context.setUserId(userId);
@@ -61,15 +72,11 @@ public class FileChunkServiceImpl extends ServiceImpl<FileChunkMapper, FileChunk
         context.setTotalChunks(chunkFileDTO.getTotalChunks());
         context.setCurrentChunkSize(chunkFileDTO.getCurrentChunkSize());
         context.setInputStream(chunkFileDTO.getMultipartFile().getInputStream());
-        // context 的 totalSize 是当前分片的大小
-        // dto 的 totalSize 是分片所属文件的大小
-        // dto 的 chunkSize 是当前分片的大小
         context.setTotalSize(chunkFileDTO.getTotalSize());
         storageService.storeChunk(context);
 
         // 2. 保存记录
-        FileChunk chunk = new FileChunk();
-        BeanUtil.copyProperties(context, chunk);
+        FileChunk chunk = FileChunkConvert.INSTANCE.contextToChunk(context);
         Integer storeType = StoreTypeEnum.getCodeByDesc(storageType);
         chunk.setStorageType(storeType);
         baseMapper.insert(chunk);
@@ -78,7 +85,7 @@ public class FileChunkServiceImpl extends ServiceImpl<FileChunkMapper, FileChunk
         lock.lock();
         int count = 0;
         try {
-            LambdaQueryWrapper<FileChunk> lambda = new LambdaQueryWrapper<>();
+            lambda = new LambdaQueryWrapper<>();
             lambda.eq(FileChunk::getIdentifier, context.getIdentifier());
             lambda.eq(FileChunk::getOwner, userId);
             count = (int) ((long)baseMapper.selectCount(lambda));
@@ -128,6 +135,7 @@ public class FileChunkServiceImpl extends ServiceImpl<FileChunkMapper, FileChunk
             if (CollectionUtils.isEmpty(chunkList)) {
                 return true;
             }
+            chunkList.sort(null);
             chunkRealPathList = chunkList.stream().map(FileChunk::getRealPath).collect(Collectors.toList());
             context.setIdentifier(fileDTO.getIdentifier());
             context.setUserId(userId);

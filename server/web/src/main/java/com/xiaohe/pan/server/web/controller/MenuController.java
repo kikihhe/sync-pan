@@ -1,10 +1,7 @@
 package com.xiaohe.pan.server.web.controller;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xiaohe.pan.common.exceptions.BusinessException;
-import com.xiaohe.pan.common.util.PageVO;
 import com.xiaohe.pan.common.util.Result;
-import com.xiaohe.pan.server.web.convert.MenuConvert;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.SubMenuListDTO;
@@ -20,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -49,6 +45,12 @@ public class MenuController {
         Boolean nameDuplicate = menuService.checkNameDuplicate(menu.getParentId(), menu.getMenuName());
         if (nameDuplicate) {
             return Result.error("目录名重复!");
+        }
+        if (!Objects.isNull(menu.getParentId())) {
+            Menu parentMenu = menuService.getById(menu.getParentId());
+            menu.setDisplayPath(parentMenu.getDisplayPath() + "/" + menu.getMenuName());
+        } else {
+            menu.setDisplayPath("/" + menu.getMenuName());
         }
         boolean save = menuService.save(menu);
         if (!save) {

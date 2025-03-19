@@ -52,6 +52,10 @@ public class File extends BaseDomain{
      */
     private String realPath;
 
+    /**
+     * 文件在网盘中展示的路径
+     */
+    private String displayPath;
 
     public String getIdentifier() {
         return identifier;

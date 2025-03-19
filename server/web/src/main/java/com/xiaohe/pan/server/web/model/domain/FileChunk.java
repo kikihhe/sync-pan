@@ -11,6 +11,7 @@ import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
@@ -24,6 +25,7 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(chain = true)
+@EqualsAndHashCode(callSuper = true)
 public class FileChunk extends BaseDomain {
     /**
      * 主键
@@ -32,9 +34,27 @@ public class FileChunk extends BaseDomain {
     private Long id;
 
     /**
-     * 文件唯一标识
+     * 分片名称
+     * ${文件名}_chunk_${chunkNumber}
+     */
+    private String filename;
+
+    /**
+     * 分片所属文件的唯一标识
+     * 合并时通过 identifier 判断哪些分片属于同一个文件
      */
     private String identifier;
+
+    /**
+     * 分片的唯一标识
+     * 断点重连后通过 chunkIdentifier 判断分片是否需要再次传输
+     */
+    private String chunkIdentifier;
+
+    /**
+     * 分片所属文件所在的目录
+     */
+    private Long menuId;
 
     /**
      * 分片真实的存储路径
@@ -46,7 +66,27 @@ public class FileChunk extends BaseDomain {
      */
     private Integer chunkNumber;
 
+    /**
+     * 分片的总个数
+     */
+    private Integer totalChunks;
+
+    /**
+     * 分片文件的大小
+     */
+    private Integer chunkSize;
+
+    /**
+     * 分片所属文件的类型
+     */
+    private String fileType;
+
     private Long owner;
+
+    /**
+     * 分片所属文件的总大小
+     */
+    private Long totalSize;
 
     /**
      * 过期时间
