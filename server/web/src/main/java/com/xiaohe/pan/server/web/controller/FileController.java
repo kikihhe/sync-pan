@@ -83,6 +83,14 @@ public class FileController {
         return Result.success("修改成功");
     }
 
+    @GetMapping("/download")
+    public void download(@RequestParam("id") Long id, HttpServletResponse response) throws RuntimeException, IOException {
+        if (Objects.isNull(id)) {
+            throw new BusinessException("请选择文件");
+        }
+        fileService.download(id, response);
+    }
+
     /**
      * 文件预览
      * @return

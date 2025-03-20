@@ -37,7 +37,8 @@ public class AuthenticationFilter implements Filter {
     private static List<String> allowList = Arrays.asList(
             "/hello",
             "/user/login",
-            "/user/register"
+            "/user/register",
+            "/file/download"
     );
 
     @Override

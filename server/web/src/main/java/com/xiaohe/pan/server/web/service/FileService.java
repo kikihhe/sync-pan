@@ -22,4 +22,6 @@ public interface FileService extends IService<File> {
     public Boolean checkNameDuplicate(Long menuId, String name);
 
     void preview(Long fileId, HttpServletResponse response) throws IOException;
+
+    void download(Long id, HttpServletResponse response) throws RuntimeException, IOException;
 }

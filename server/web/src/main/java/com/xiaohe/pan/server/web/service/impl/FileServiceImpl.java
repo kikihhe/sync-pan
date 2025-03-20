@@ -3,12 +3,14 @@ package com.xiaohe.pan.server.web.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiaohe.pan.common.exceptions.BusinessException;
+import com.xiaohe.pan.server.web.constants.FileConstants;
 import com.xiaohe.pan.server.web.mapper.FileMapper;
 import com.xiaohe.pan.server.web.mapper.MenuMapper;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import com.xiaohe.pan.server.web.service.FileService;
+import com.xiaohe.pan.server.web.util.HttpUtil;
 import com.xiaohe.pan.server.web.util.MenuUtil;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import com.xiaohe.pan.storage.api.StorageService;
@@ -17,11 +19,13 @@ import com.xiaohe.pan.storage.api.context.DeleteFileContext;
 import com.xiaohe.pan.storage.api.context.ReadFileContext;
 import com.xiaohe.pan.storage.api.context.StoreFileContext;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -157,5 +161,49 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
                 .setRealPath(realPath)
                 .setOutputStream(response.getOutputStream());
         storageService.readFile(readFileContext);
+    }
+
+    @Override
+    public void download(Long id, HttpServletResponse response) throws RuntimeException, IOException {
+        File file = getById(id);
+        if (Objects.isNull(file)) {
+            throw new BusinessException("文件不存在");
+        }
+        // 1. 设置响应的属性
+        addCommonResponseHeader(response, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        addDownloadAttribute(response, file);
+
+        // 2. 将数据流读到 response 中
+        ReadFileContext context = new ReadFileContext();
+        context.setRealPath(file.getRealPath());
+        context.setOutputStream(response.getOutputStream());
+        storageService.readFile(context);
+    }
+
+    /**
+     * 添加公共的文件读取响应头
+     *
+     * @param response
+     * @param contentTypeValue
+     */
+    private void addCommonResponseHeader(HttpServletResponse response, String contentTypeValue) {
+        response.reset();
+        HttpUtil.addCorsResponseHeaders(response);
+        response.addHeader(FileConstants.CONTENT_TYPE_STR, contentTypeValue);
+        response.setContentType(contentTypeValue);
+    }
+    /**
+     * 添加文件下载的属性信息
+     */
+    private void addDownloadAttribute(HttpServletResponse response, File file) {
+        try {
+            response.addHeader(FileConstants.CONTENT_DISPOSITION_STR,
+                        FileConstants.CONTENT_DISPOSITION_VALUE_PREFIX_STR + new String(file.getFileName().getBytes(FileConstants.GB2312_STR),
+                            FileConstants.IOS_8859_1_STR));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            throw new BusinessException("文件下载失败");
+        }
+        response.setContentLengthLong(file.getFileSize());
     }
 }
