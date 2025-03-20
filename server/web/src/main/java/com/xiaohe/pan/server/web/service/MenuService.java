@@ -2,6 +2,8 @@ package com.xiaohe.pan.server.web.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xiaohe.pan.server.web.model.domain.Menu;
+import com.xiaohe.pan.server.web.model.dto.MenuTreeDTO;
+
 import java.util.List;
 
 
@@ -15,4 +17,6 @@ public interface MenuService extends IService<Menu> {
     public Boolean deleteMenu(Long menuId, Long userId);
 
     public Boolean checkNameDuplicate(Long menuId, String name);
+
+    MenuTreeDTO batchAddMenu(MenuTreeDTO menuTreeDTO, Long userId);
 }

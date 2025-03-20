@@ -4,6 +4,7 @@ import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.Menu;
+import com.xiaohe.pan.server.web.model.dto.MenuTreeDTO;
 import com.xiaohe.pan.server.web.model.dto.SubMenuListDTO;
 import com.xiaohe.pan.server.web.model.vo.FileAndMenuListVO;
 import com.xiaohe.pan.server.web.model.vo.MenuVO;
@@ -93,6 +94,12 @@ public class MenuController {
         return Result.success("删除成功");
     }
 
+    @PostMapping("/batchAddMenu")
+    public Result<MenuTreeDTO> batchAddMenu(@RequestBody MenuTreeDTO menuTreeDTO) {
+        Long userId = SecurityContextUtil.getCurrentUser().getId();
+        MenuTreeDTO list = menuService.batchAddMenu(menuTreeDTO, userId);
+        return Result.success(list);
+    }
     /**
      * 获取指定目录的子目录
      * 若 menuId 为空，则获取指定用户的所有一级目录
