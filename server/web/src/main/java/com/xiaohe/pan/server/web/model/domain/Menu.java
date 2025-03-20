@@ -55,9 +55,4 @@ public class Menu extends BaseDomain {
      */
     private Long owner;
 
-    /**
-     * 给前端返回时才会用到
-     */
-    @TableField(exist = false)
-    private Long menuSize;
 }
