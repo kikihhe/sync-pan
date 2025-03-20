@@ -2,6 +2,7 @@ package com.xiaohe.pan.server.web.convert;
 
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.MenuTreeDTO;
+import com.xiaohe.pan.server.web.model.vo.MenuDetailVO;
 import com.xiaohe.pan.server.web.model.vo.MenuVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;
@@ -20,4 +21,6 @@ public interface MenuConvert {
      * @return
      */
     Menu menuTreeTOMenu(MenuTreeDTO menuTreeDTO);
+
+    List<MenuDetailVO> menuListTOMenuDetailVOList(List<Menu> menuList);
 }

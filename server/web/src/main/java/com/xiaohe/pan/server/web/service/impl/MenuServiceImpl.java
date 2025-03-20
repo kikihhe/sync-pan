@@ -13,6 +13,7 @@ import com.xiaohe.pan.server.web.model.dto.MenuTreeDTO;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.service.MenuService;
 import com.xiaohe.pan.server.web.util.ApplicationContextUtil;
+import com.xiaohe.pan.server.web.util.MenuUtil;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import com.xiaohe.pan.server.web.util.Snowflake;
 import org.springframework.aop.framework.AopContext;
@@ -36,6 +37,9 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
 
     @Autowired
     private FileMapper fileMapper;
+
+    @Autowired
+    private MenuUtil menuUtil;
 
     @Override
     public List<Menu> getSubMenuByRange(Long menuId, Long userId, String name, Integer orderBy, Integer desc, Integer start, Integer count) {
@@ -141,7 +145,11 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
         List<Menu> menuList = new ArrayList<>();
         menuTreeTOMenuList(menuTreeDTO, menuList);
         saveBatch(menuList);
-        // 3. 返回
+        // 3. 异步在 redis 创建目录
+        for (Menu m : menuList) {
+            menuUtil.onAddMenu(m.getId(), m.getParentId());
+        }
+        // 4. 返回
         return menuTreeDTO;
     }
 

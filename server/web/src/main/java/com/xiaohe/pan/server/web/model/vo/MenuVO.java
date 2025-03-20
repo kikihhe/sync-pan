@@ -18,7 +18,7 @@ public class MenuVO {
     /**
      * 由于查看时不需要树形，所以 subMenu 的类型为 Menu
      */
-    private List<Menu> subMenuList;
+    private List<MenuDetailVO> subMenuList;
 
     private List<File> subFileList;
 

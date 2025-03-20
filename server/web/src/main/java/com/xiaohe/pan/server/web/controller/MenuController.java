@@ -2,17 +2,21 @@ package com.xiaohe.pan.server.web.controller;
 
 import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.common.util.Result;
+import com.xiaohe.pan.server.web.convert.MenuConvert;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.MenuTreeDTO;
 import com.xiaohe.pan.server.web.model.dto.SubMenuListDTO;
 import com.xiaohe.pan.server.web.model.vo.FileAndMenuListVO;
+import com.xiaohe.pan.server.web.model.vo.MenuDetailVO;
 import com.xiaohe.pan.server.web.model.vo.MenuVO;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.service.MenuService;
+import com.xiaohe.pan.server.web.util.MenuUtil;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,7 +24,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/menu")
@@ -32,6 +38,8 @@ public class MenuController {
     @Autowired
     private FileService fileService;
 
+    @Autowired
+    private MenuUtil menuUtil;
 
 
     /**
@@ -57,6 +65,7 @@ public class MenuController {
         if (!save) {
             return Result.error("目录添加失败，请稍后再试");
         }
+        menuUtil.onAddMenu(menu.getId(), menu.getParentId());
         return Result.success("目录添加成功");
     }
 
@@ -163,10 +172,19 @@ public class MenuController {
                 menuList = vo.getMenuList();
         }
 
+        List<MenuDetailVO> menuDetailVOList = MenuConvert.INSTANCE.menuListTOMenuDetailVOList(menuList);
+        // 填充目录大小
+        if (!CollectionUtils.isEmpty(menuList)) {
+            Map<Long, Long> idTOSizeMap = menuUtil.batchGetMenuSizes(menuList.stream().map(Menu::getId).collect(Collectors.toList()));
+            menuDetailVOList.forEach(m -> {
+                Long size = idTOSizeMap.get(m.getId());
+                m.setMenuSize(size);
+            });
+        }
 
         MenuVO menuVO = new MenuVO()
                 .setCurrentMenu(menu)
-                .setSubMenuList(menuList)
+                .setSubMenuList(menuDetailVOList)
                 .setSubFileList(fileList)
                 .setPageNum(pageNum + 1)
                 .setPageSize(pageSize)

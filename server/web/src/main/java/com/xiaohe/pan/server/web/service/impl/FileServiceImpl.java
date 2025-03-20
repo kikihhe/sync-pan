@@ -9,6 +9,7 @@ import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import com.xiaohe.pan.server.web.service.FileService;
+import com.xiaohe.pan.server.web.util.MenuUtil;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import com.xiaohe.pan.storage.api.StorageService;
 import com.xiaohe.pan.storage.api.StoreTypeEnum;
@@ -23,6 +24,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -37,6 +39,9 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
 
     @Value("${storage.type}")
     private String storageType;
+
+    @Resource
+    private MenuUtil menuUtil;
 
     /**
      * 获取指定目录下的文件
@@ -91,6 +96,7 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
             if (insert < 0) {
                 throw new RuntimeException("上传失败");
             }
+            menuUtil.onAddFile(fileDTO.getMenuId(), file.getFileSize());
         } catch (Exception e) {
             if (!Objects.isNull(file.getRealPath())) {
                 DeleteFileContext context = new DeleteFileContext()
@@ -105,7 +111,8 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
     @Override
     public void deleteFile(List<Long> fileList) throws IOException {
         // 1. 查询文件的真实路径
-        List<String> realPathList = baseMapper.selectBatchIds(fileList)
+        List<File> files = baseMapper.selectBatchIds(fileList);
+        List<String> realPathList = files
                 .stream().map(File::getRealPath)
                 .collect(Collectors.toList());
         // 2. 删除真实文件
@@ -116,6 +123,12 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
 
         // 3. 取消关联
         baseMapper.deleteBatchIds(fileList);
+        // 4. 计算大小
+        files = files.stream().filter(file -> Objects.nonNull(file.getMenuId())).collect(Collectors.toList());
+        Map<Long, Long> collect = files.stream().collect(Collectors.groupingBy(File::getMenuId, Collectors.summingLong(File::getFileSize)));
+        collect.forEach((menuId, size) -> {
+            menuUtil.onDeleteFile(menuId, size);
+        });
     }
 
 
