@@ -7,6 +7,7 @@ import com.xiaohe.pan.common.util.JWTUtils;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.model.domain.Secret;
 import com.xiaohe.pan.server.web.service.SecretService;
+import com.xiaohe.pan.server.web.util.CryptoUtils;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,17 +28,19 @@ public class SecretController {
     private SecretService secretService;
 
     @PostMapping("/addSecret")
-    public Result<String> addSecret(@RequestBody Secret secret) throws JsonProcessingException {
-        if (StringUtils.isBlank(secret.getKey()) || StringUtils.isBlank(secret.getValue())) {
+    public Result<String> addSecret(@RequestBody Secret request) throws JsonProcessingException {
+        if (StringUtils.isBlank(request.getKey()) || StringUtils.isBlank(request.getValue())) {
             return Result.error("参数错误");
         }
-        Long userId = SecurityContextUtil.getCurrentUser().getId();
-        secret.setUserId(userId);
+        Long userId = SecurityContextUtil.getCurrentUserId();
+
+        Secret secret = new Secret()
+                .setUserId(userId)
+                .setKey(request.getKey())
+                .setValue(CryptoUtils.hashSecret(request.getValue()));
+
         secretService.save(secret);
-        String value = JWTUtils.createToken(secret);
-        value = value.replace(".", "");
-        secret.setValue(value);
-        return Result.error("添加成功");
+        return Result.success();
     }
 
     @GetMapping("/listSecret")

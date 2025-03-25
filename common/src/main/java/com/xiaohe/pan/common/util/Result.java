@@ -50,7 +50,9 @@ public class Result<T> implements Serializable {
         return result(ResponseCodeConstants.SUCCESS, "success", data);
     }
 
-
+    public static <T> Result<T> success() {
+        return result(ResponseCodeConstants.SUCCESS, "success", null);
+    }
 
     public static <T> Result<T> error(String message, T data) {
         return result(ResponseCodeConstants.INTERNAL_ERROR, message, data);
