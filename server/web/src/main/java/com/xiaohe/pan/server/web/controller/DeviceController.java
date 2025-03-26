@@ -13,7 +13,10 @@ import com.xiaohe.pan.server.web.model.vo.DeviceVO;
 import com.xiaohe.pan.server.web.service.DeviceService;
 import com.xiaohe.pan.server.web.service.SecretService;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,6 +32,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/device")
 public class DeviceController {
+
+    private static Logger logger = LoggerFactory.getLogger(DeviceController.class);
 
     @Autowired
     private DeviceService deviceService;
@@ -56,6 +61,7 @@ public class DeviceController {
 
     @PostMapping("/heartbeat")
     public Result<DeviceHeartbeatVO> heartbeat(@RequestBody DeviceHeartbeatDTO heartbeatDTO) throws BusinessException {
+        logger.info("收到来自 deviceKey=" + heartbeatDTO.getDeviceKey() + "的心跳请求");
         deviceService.verifySecret(heartbeatDTO.getDeviceKey(), heartbeatDTO.getSecret());
         Long userId = SecurityContextUtil.getCurrentUserId();
         Device device = deviceService.verifyDeviceOwnership(heartbeatDTO.getDeviceKey(), userId);
@@ -70,10 +76,12 @@ public class DeviceController {
         }
         Long userId = SecurityContextUtil.getCurrentUserId();
         device.setUserId(userId);
-        String deviceKey = UUID.randomUUID().toString()
-                .replace("-", "")
-                .substring(0, 16);
-        device.setDeviceKey(deviceKey);
+        if (!StringUtils.hasText(device.getDeviceKey())) {
+            String deviceKey = UUID.randomUUID().toString()
+                    .replace("-", "")
+                    .substring(0, 16);
+            device.setDeviceKey(deviceKey);
+        }
         device.setStatus(DeviceStatus.REGISTER.getCode());
         deviceService.save(device);
         return Result.success(device);

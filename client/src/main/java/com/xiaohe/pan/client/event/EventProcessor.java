@@ -1,5 +1,6 @@
 package com.xiaohe.pan.client.event;
 
+import com.xiaohe.pan.client.http.HttpClientManager;
 import com.xiaohe.pan.client.listener.FileListenerMonitor;
 import com.xiaohe.pan.client.model.Event;
 
@@ -11,16 +12,14 @@ import java.util.concurrent.TimeUnit;
 public class EventProcessor {
     private final ScheduledExecutorService scheduler;
     private final EventContainer eventContainer;
-    private static final EventProcessor INSTANCE = new EventProcessor();
+    private final HttpClientManager httpClient;
 
-    private EventProcessor() {
+    public EventProcessor(HttpClientManager httpClient) {
         this.scheduler = Executors.newScheduledThreadPool(1);
         this.eventContainer = EventContainer.getInstance();
+        this.httpClient = httpClient;
     }
 
-    public static EventProcessor getInstance() {
-        return INSTANCE;
-    }
 
     public void start(FileListenerMonitor monitor) {
         scheduler.scheduleAtFixedRate(this::processEvents, 5, 3, TimeUnit.SECONDS);
@@ -30,11 +29,12 @@ public class EventProcessor {
     private void processEvents() {
         try {
             List<Event> events = eventContainer.drainEvents();
-            if (!events.isEmpty()) {
-                List<Event> mergedEvents = EventContainer.mergeEvents(events);
-                for (Event event : mergedEvents) {
-                    System.out.println("处理合并后的事件: " + event);
-                }
+            if (events.isEmpty()) {
+                return;
+            }
+            List<Event> mergedEvents = EventContainer.mergeEvents(events);
+            for (Event event : mergedEvents) {
+                System.out.println("处理合并后的事件: " + event);
             }
         } catch (Exception e) {
             e.printStackTrace();

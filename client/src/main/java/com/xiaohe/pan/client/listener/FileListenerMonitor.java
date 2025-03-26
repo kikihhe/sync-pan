@@ -56,14 +56,6 @@ public class FileListenerMonitor {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-//        File parent = child.getParentFile();
-//        while (parent != null) {
-//            if (parent.equals(potentialParent)) {
-//                return true;
-//            }
-//            parent = parent.getParentFile();
-//        }
-//        return false;
     }
 
     public void start() {

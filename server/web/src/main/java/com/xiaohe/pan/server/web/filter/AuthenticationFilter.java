@@ -38,7 +38,9 @@ public class AuthenticationFilter implements Filter {
             "/hello",
             "/user/login",
             "/user/register",
-            "/file/download"
+            "/file/download",
+            "/device/heartbeat"
+//            "/device/"
     );
 
     @Override
