@@ -9,7 +9,7 @@
         <id property="userId" column="user_id"/>
         <result property="deviceName" column="device_name"/>
         <result property="deviceKey" column="device_key"/>
-        <result property="secret" column="secret"/>
+        <result property="secretId" column="secret_id"/>
         <result property="lastHeartbeat" column="last_heartbeat"/>
         <result property="status" column="status"/>
         <result property="createTime" column="create_time"/>

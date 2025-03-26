@@ -8,7 +8,7 @@ import com.xiaohe.pan.server.web.model.vo.DeviceHeartbeatVO;
 
 public interface DeviceService extends IService<Device> {
 
-    public Device verifyDeviceOwnership(String deviceKey, String secret, Long userId) throws BusinessException;
+    public Device verifyDeviceOwnership(String deviceKey, Long userId) throws BusinessException;
 
     Result<DeviceHeartbeatVO> processHeartbeat(Device device) throws BusinessException;
 

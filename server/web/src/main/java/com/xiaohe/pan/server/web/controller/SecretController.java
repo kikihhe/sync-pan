@@ -3,7 +3,6 @@ package com.xiaohe.pan.server.web.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.xiaohe.pan.common.util.JWTUtils;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.model.domain.Secret;
 import com.xiaohe.pan.server.web.service.SecretService;
@@ -16,9 +15,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 import javax.annotation.Resource;
 import java.util.List;
+
 
 @RestController
 @RequestMapping("/secret")
@@ -44,10 +43,13 @@ public class SecretController {
     }
 
     @GetMapping("/listSecret")
-    public Result<List<Secret>> listSecret() {
+    public Result<List<Secret>> listSecret(@RequestParam String key) {
         Long userId = SecurityContextUtil.getCurrentUserId();
         LambdaQueryWrapper<Secret> lambda = new LambdaQueryWrapper<>();
         lambda.eq(Secret::getUserId, userId);
+        if (!StringUtils.isBlank(key)) {
+            lambda.like(Secret::getKey, key);
+        }
         List<Secret> list = secretService.list(lambda);
         return Result.success(list);
     }

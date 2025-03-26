@@ -1,4 +1,4 @@
-package com.xiaohe.pan.server.web.model.domain;
+package com.xiaohe.pan.server.web.model.vo;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -14,8 +14,7 @@ import java.time.LocalDateTime;
 @Data
 @Accessors(chain = true)
 @TableName("device")
-public class Device extends BaseDomain {
-
+public class DeviceVO {
     private Long id;
 
     private Long userId;
@@ -33,7 +32,7 @@ public class Device extends BaseDomain {
     /**
      * 同步密钥
      */
-    private Long secretId;
+    private String secretKey;
 
     /**
      * 最近的心跳时间
@@ -47,4 +46,16 @@ public class Device extends BaseDomain {
      * 设备状态
      */
     private Integer status;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    private LocalDateTime createTime;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    private LocalDateTime updateTime;
+
+    private Boolean deleted;
 }
