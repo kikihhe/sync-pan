@@ -11,6 +11,6 @@ import java.time.LocalDateTime;
 @Mapper
 public interface DeviceMapper extends BaseMapper<Device> {
 
-    @Update("UPDATE device SET status = 0 WHERE last_heartbeat < #{threshold} AND status != 0")
+    @Update("UPDATE device SET status = 0 WHERE last_heartbeat < #{threshold} AND status != 0 and status = 1")
     int markDeadDevices(@Param("threshold") LocalDateTime threshold);
 }
