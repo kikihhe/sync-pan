@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -115,16 +116,25 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
     }
 
     @Override
-    public Boolean checkNameDuplicate(Long menuId, String name) {
+    public Boolean checkNameDuplicate(Long parentId, String name) {
         LambdaQueryWrapper<Menu> lambda = new LambdaQueryWrapper<>();
-        if (Objects.isNull(menuId)) {
+        if (Objects.isNull(parentId)) {
             lambda.eq(Menu::getMenuLevel, 1);
         } else {
-            lambda.eq(Menu::getParentId, menuId);
+            lambda.eq(Menu::getParentId, parentId);
         }
         lambda.eq(Menu::getMenuName, name);
         Long count = baseMapper.selectCount(lambda);
         return count > 0;
+    }
+
+    public Menu getByDisplayPath(String displayPath) {
+        if (!StringUtils.hasText(displayPath)) {
+            throw new BusinessException("路径不合法!");
+        }
+        LambdaQueryWrapper<Menu> lambda = new LambdaQueryWrapper<>();
+        lambda.eq(Menu::getDisplayPath, displayPath);
+        return getOne(lambda);
     }
 
     /**
@@ -177,5 +187,47 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
 
     private Long generateUniqueId() {
         return Snowflake.INSTANCE.nextId();
+    }
+
+    @Override
+    @Transactional
+    public Menu addMenuByPath(Menu menu) {
+        Long userId = SecurityContextUtil.getCurrentUserId();
+        Menu current = new Menu();
+        String path = menu.getDisplayPath();
+        String[] parts = path.split("/");
+        if (parts.length == 0) {
+            throw new BusinessException("路径不合法");
+        }
+        Long currentParentId = null;
+        int currentLevel = 1;
+        String rollingPath = "";
+        for (String part : parts) {
+            if (!StringUtils.hasText(part)) {
+                continue;
+            }
+            String menuName = part;
+            part = rollingPath + "/" + part;
+            Menu byDisplayPath = getByDisplayPath(part);
+            if (!Objects.isNull(byDisplayPath)) {
+                currentParentId = byDisplayPath.getId();
+                currentLevel++;
+                continue;
+            }
+            current = new Menu()
+                    .setMenuName(menuName)
+                    .setParentId(currentParentId)
+                    .setMenuLevel(currentLevel)
+                    .setDisplayPath(part)
+                    .setOwner(userId);
+            boolean save = save(current);
+            if (!save) {
+                throw new BusinessException("目录添加失败: " + part);
+            }
+            currentParentId = current.getId();
+            currentLevel++;
+            rollingPath = part;
+        }
+        return current;
     }
 }

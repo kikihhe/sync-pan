@@ -8,6 +8,8 @@ import java.util.List;
 
 
 public interface MenuService extends IService<Menu> {
+    public Menu addMenuByPath(Menu menu);
+
     public List<Menu> getSubMenuByRange(Long menuId, Long userId, String name, Integer orderBy, Integer desc, Integer start, Integer count);
 
     public Menu getByUserAndMenuId(Long userId, Long menuId);
