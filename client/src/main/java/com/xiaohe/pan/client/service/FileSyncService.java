@@ -1,5 +1,6 @@
-package com.xiaohe.pan.client.event;
+package com.xiaohe.pan.client.service;
 
+import com.xiaohe.pan.client.event.EventContainer;
 import com.xiaohe.pan.client.http.HttpClientManager;
 import com.xiaohe.pan.client.listener.FileListenerMonitor;
 import com.xiaohe.pan.client.model.Event;
@@ -9,12 +10,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class EventProcessor {
+public class FileSyncService {
     private final ScheduledExecutorService scheduler;
     private final EventContainer eventContainer;
     private final HttpClientManager httpClient;
 
-    public EventProcessor(HttpClientManager httpClient) {
+    public FileSyncService(HttpClientManager httpClient) {
         this.scheduler = Executors.newScheduledThreadPool(1);
         this.eventContainer = EventContainer.getInstance();
         this.httpClient = httpClient;

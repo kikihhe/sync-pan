@@ -1,7 +1,7 @@
 package com.xiaohe.pan.client;
 
 import com.xiaohe.pan.client.config.ClientConfig;
-import com.xiaohe.pan.client.event.EventProcessor;
+import com.xiaohe.pan.client.service.FileSyncService;
 import com.xiaohe.pan.client.http.HttpClientManager;
 import com.xiaohe.pan.client.listener.FileListenerMonitor;
 import com.xiaohe.pan.client.service.HeartbeatService;
@@ -22,15 +22,15 @@ public class SyncPanClient {
 
         FileListenerMonitor monitor = FileListenerMonitor.getInstance();
         HeartbeatService heartbeatService = new HeartbeatService(httpClient);
-        EventProcessor eventProcessor = new EventProcessor(httpClient);
+        FileSyncService fileSyncService = new FileSyncService(httpClient);
 
         // 启动服务
         heartbeatService.start();
-        eventProcessor.start(monitor);
+        fileSyncService.start(monitor);
 
         // 注册关闭钩子
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            eventProcessor.shutdown();
+            fileSyncService.shutdown();
             try {
                 heartbeatService.shutdown();
             } catch (IOException e) {
