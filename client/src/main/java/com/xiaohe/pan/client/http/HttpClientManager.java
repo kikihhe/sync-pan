@@ -5,10 +5,14 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
+// 需要新增的import
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import java.io.File;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -79,6 +83,35 @@ public class HttpClientManager {
             return EntityUtils.toString(response.getEntity());
         }
     }
+
+    public String upload(String url, File file, Map<String, String> formData) throws IOException {
+        // 构建多部分表单实体
+        StringEntity entity = buildMultipartEntity(file, formData);
+
+        // 设置请求头（覆盖默认JSON头）
+        Map<String, String> headers = new HashMap<>(generateDefaultHeaders());
+        headers.put("Content-Type", entity.getContentType().getValue());
+
+        // 调用已有的post方法
+        return post(url, headers, null, entity.getContent().toString());
+    }
+
+    private StringEntity buildMultipartEntity(File file, Map<String, String> formData) throws IOException {
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+
+        // 添加文件部分
+        builder.addBinaryBody("multipartFile", file,
+                ContentType.APPLICATION_OCTET_STREAM,
+                file.getName());
+
+        // 添加其他表单参数
+        if (formData != null) {
+            formData.forEach((k, v) -> builder.addTextBody(k, v, ContentType.TEXT_PLAIN));
+        }
+
+        return new StringEntity(String.valueOf(builder.build().getContent()), ContentType.get(builder.build()));
+    }
+
     private String buildUrlWithParams(String url, Map<String, String> params) {
         if (params == null || params.isEmpty()) return url;
 
@@ -101,4 +134,5 @@ public class HttpClientManager {
         headers.put("content-type", "application/json;charset=utf8");
         return headers;
     }
+
 }
