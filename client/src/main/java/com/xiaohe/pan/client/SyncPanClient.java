@@ -5,7 +5,7 @@ import com.xiaohe.pan.client.event.EventProcessor;
 import com.xiaohe.pan.client.http.HttpClientManager;
 import com.xiaohe.pan.client.listener.FileListenerMonitor;
 import com.xiaohe.pan.client.service.HeartbeatService;
-
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,8 +30,12 @@ public class SyncPanClient {
 
         // 注册关闭钩子
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            heartbeatService.shutdown();
             eventProcessor.shutdown();
+            try {
+                heartbeatService.shutdown();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             System.out.println("客户端已安全关闭");
         }));
     }

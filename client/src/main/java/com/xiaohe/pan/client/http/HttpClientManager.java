@@ -1,14 +1,21 @@
 package com.xiaohe.pan.client.http;
 
 
+import cn.hutool.core.collection.CollUtil;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
+import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.util.EntityUtils;
 // 需要新增的import
 import org.apache.http.entity.mime.MultipartEntityBuilder;
@@ -17,15 +24,36 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Future;
 
 
 public class HttpClientManager {
     private final String SERVER_BASE_URL;
 
+    /**
+     * 同步客户端
+     */
     private final CloseableHttpClient httpClient;
+    /**
+     * 异步客户端
+     */
+    private final CloseableHttpAsyncClient asyncHttpClient;
+
 
     public HttpClientManager(String url) {
-        this.httpClient = HttpClients.createDefault();
+        this.httpClient = HttpClients.custom()
+                .setMaxConnPerRoute(20)
+                .setMaxConnTotal(100)
+                .build();
+
+        IOReactorConfig ioReactorConfig = IOReactorConfig.custom().setSoTimeout(5000).build();
+        this.asyncHttpClient = HttpAsyncClients.custom()
+                .setMaxConnPerRoute(20)
+                .setMaxConnTotal(100)
+                .setDefaultIOReactorConfig(ioReactorConfig)
+                .build();
+        // 启动
+        this.asyncHttpClient.start();
         SERVER_BASE_URL = url;
     }
 
@@ -84,6 +112,41 @@ public class HttpClientManager {
         }
     }
 
+    // 异步POST基础方法
+    public Future<HttpResponse> asyncPost(String url, Map<String, String> headers, String body) {
+        HttpPost httpPost = new HttpPost(SERVER_BASE_URL + url);
+        if (CollUtil.isEmpty(headers)) {
+            headers = generateDefaultHeaders();
+        }
+        addHeaders(httpPost, headers);
+
+        if (body != null) {
+            httpPost.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+        }
+
+        return asyncHttpClient.execute(httpPost, null);
+    }
+
+    // 带回调的异步POST
+    public Future<HttpResponse> asyncPostWithCallback(String url, Map<String, String> headers, String body, FutureCallback<HttpResponse> callback) {
+        HttpPost httpPost = new HttpPost(SERVER_BASE_URL + url);
+        if (CollUtil.isEmpty(headers)) {
+            headers = generateDefaultHeaders();
+        }
+        addHeaders(httpPost, headers);
+
+        if (body != null) {
+            httpPost.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+        }
+
+        return asyncHttpClient.execute(httpPost, callback);
+    }
+
+    public void onewayPost(String url, Map<String, String> headers, String body) {
+        // 忽略返回的Future对象
+        asyncPost(url, headers, body);
+    }
+
     public String upload(String url, File file, Map<String, String> formData) throws IOException {
         // 构建多部分表单实体
         StringEntity entity = buildMultipartEntity(file, formData);
@@ -95,14 +158,52 @@ public class HttpClientManager {
         // 调用已有的post方法
         return post(url, headers, null, entity.getContent().toString());
     }
+    public Future<HttpResponse> asyncUpload(String url, File file, Map<String, String> formData) throws IOException {
+        HttpPost httpPost = new HttpPost(SERVER_BASE_URL + url);
+
+        // 构建Multipart
+        httpPost.setEntity((HttpEntity) buildMultipartEntity(file, formData).getContent());
+
+        // 设置请求头
+        Map<String, String> headers = new HashMap<>(generateDefaultHeaders());
+        headers.put("Content-Type", "multipart/form-data");
+        addHeaders(httpPost, headers);
+
+        // 执行异步请求
+        return asyncHttpClient.execute(httpPost, new FutureCallback<HttpResponse>() {
+            @Override
+            public void completed(HttpResponse response) {
+                System.out.println("上传完成，状态码：" + response.getStatusLine().getStatusCode());
+            }
+
+            @Override
+            public void failed(Exception ex) {
+                System.err.println("上传失败：" + ex.getMessage());
+            }
+
+            @Override
+            public void cancelled() {
+                System.out.println("上传取消");
+            }
+        });
+    }
+
+    /**
+     * 单向上传
+     * @param url
+     * @param file
+     * @param formData
+     * @throws IOException
+     */
+    public void onewayUpload(String url, File file, Map<String, String> formData) throws IOException {
+        asyncUpload(url, file, formData);
+    }
 
     private StringEntity buildMultipartEntity(File file, Map<String, String> formData) throws IOException {
         MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 
         // 添加文件部分
-        builder.addBinaryBody("multipartFile", file,
-                ContentType.APPLICATION_OCTET_STREAM,
-                file.getName());
+        builder.addBinaryBody("multipartFile", file, ContentType.APPLICATION_OCTET_STREAM, file.getName());
 
         // 添加其他表单参数
         if (formData != null) {
@@ -134,5 +235,9 @@ public class HttpClientManager {
         headers.put("content-type", "application/json;charset=utf8");
         return headers;
     }
-
+    // 添加关闭方法
+    public void close() throws IOException {
+        this.httpClient.close();
+        this.asyncHttpClient.close();
+    }
 }

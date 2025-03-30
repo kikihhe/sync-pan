@@ -9,6 +9,7 @@ import com.xiaohe.pan.client.model.dto.DeviceHeartbeatDTO;
 import com.xiaohe.pan.client.model.vo.DeviceHeartbeatVO;
 import com.xiaohe.pan.common.util.Result;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executors;
@@ -65,7 +66,8 @@ public class HeartbeatService {
         });
     }
 
-    public void shutdown() {
+    public void shutdown() throws IOException {
         scheduler.shutdown();
+        httpClient.close();
     }
 }
