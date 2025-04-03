@@ -61,7 +61,8 @@ public class FileSyncService {
         System.out.println(resp);
     }
 
-    public void shutdown() {
+    public void shutdown() throws Exception {
+        monitor.stop();
         scheduler.shutdown();
     }
 }

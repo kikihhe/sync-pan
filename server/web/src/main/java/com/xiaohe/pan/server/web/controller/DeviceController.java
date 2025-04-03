@@ -64,6 +64,9 @@ public class DeviceController {
     public Result<DeviceHeartbeatVO> heartbeat(HttpServletRequest request) throws BusinessException {
         String deviceKey = request.getHeader("deviceKey");
         String secret = request.getHeader("secret");
+        if (!StringUtils.hasText(deviceKey) || !StringUtils.hasText(secret)) {
+            return Result.error("设备未注册或密钥错误");
+        }
         logger.info("收到来自 deviceKey=" + deviceKey + "的心跳请求");
         Device device = deviceService.verifySecret(deviceKey, secret);
         return deviceService.processHeartbeat(device);

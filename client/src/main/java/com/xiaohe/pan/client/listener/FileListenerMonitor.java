@@ -16,6 +16,7 @@ public class FileListenerMonitor {
 
     private final List<BoundDirectory> boundDirectories = new ArrayList<>();
     private final long interval = TimeUnit.SECONDS.toMillis(1);
+    private FileAlterationMonitor fileAlterationMonitor;
 
     private FileListenerMonitor() {}
 
@@ -32,8 +33,8 @@ public class FileListenerMonitor {
         File dir = new File(local);
         // 检查目录是否存在并且是一个目录
         if (!dir.exists()) {
-            System.out.println("文件或目录不存在：" + dir.getPath());
-            return false;
+            // 文件或目录不存在，创建一个
+            dir.mkdirs();
         }
         // 验证目录/文件是否已绑定或是否为其他已绑定目录的子目录
         for (BoundDirectory boundDirectory : boundDirectories) {
@@ -46,8 +47,11 @@ public class FileListenerMonitor {
         FileListener listener = new FileListener(remoteMenuPath);
         FileAlterationObserver observer = new FileAlterationObserver(dir, createFilter());
         observer.addListener(listener);
-        boundDirectories.add(new BoundDirectory(dir, remoteMenuPath, listener, remoteMenuId));
-
+        BoundDirectory boundDirectory = new BoundDirectory(dir, remoteMenuPath, listener, remoteMenuId);
+        FileAlterationObserver fileAlterationObserver = new FileAlterationObserver(dir, createFilter());
+        fileAlterationObserver.addListener(listener);
+        fileAlterationMonitor.addObserver(fileAlterationObserver);
+        boundDirectories.add(boundDirectory);
         return true;
     }
 
@@ -67,12 +71,19 @@ public class FileListenerMonitor {
             fileAlterationObserver.addListener(boundDirectory.getListener());
             observers.add(i, fileAlterationObserver);
         }
-        FileAlterationMonitor fileAlterationMonitor = new FileAlterationMonitor(interval, observers.toArray(new FileAlterationObserver[0]));
+        fileAlterationMonitor = new FileAlterationMonitor(interval, observers.toArray(new FileAlterationObserver[0]));
         try {
             fileAlterationMonitor.start();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+    public void stop() throws Exception {
+        fileAlterationMonitor.stop();
+    }
+    public void restart() throws Exception {
+        stop();
+        start();
     }
 
     private IOFileFilter createFilter() {

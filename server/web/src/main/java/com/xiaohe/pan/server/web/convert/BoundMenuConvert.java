@@ -11,5 +11,7 @@ import java.util.List;
 public interface BoundMenuConvert {
     public static final BoundMenuConvert INSTANCE = Mappers.getMapper(BoundMenuConvert.class);
 
+    BoundMenuVO boundMenuConvertTOBoundMenuVO(BoundMenu menu);
+
     List<BoundMenuVO> boundMenuListConvertTOBoundMenuVOList(List<BoundMenu> menuList);
 }

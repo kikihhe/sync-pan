@@ -9,7 +9,8 @@ public class BoundMenuVO {
     private Long id;
     private String deviceName;
     private String localPath;
-    private String remotePath;
+    private String remoteMenuPath;
+    private Long remoteMenuId;
     private Integer direction;
     private LocalDateTime lastSyncedAt;
 }

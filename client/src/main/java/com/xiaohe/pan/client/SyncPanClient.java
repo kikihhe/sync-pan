@@ -31,10 +31,12 @@ public class SyncPanClient {
 
         // 注册关闭钩子
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            fileSyncService.shutdown();
             try {
+                fileSyncService.shutdown();
                 heartbeatService.shutdown();
             } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
             System.out.println("客户端已安全关闭");

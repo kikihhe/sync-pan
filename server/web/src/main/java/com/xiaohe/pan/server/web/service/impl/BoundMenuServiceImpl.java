@@ -2,13 +2,11 @@ package com.xiaohe.pan.server.web.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.server.web.convert.BoundMenuConvert;
 import com.xiaohe.pan.server.web.core.queue.BindingEventQueue;
 import com.xiaohe.pan.server.web.mapper.BoundMenuMapper;
 import com.xiaohe.pan.server.web.mapper.DeviceMapper;
-import com.xiaohe.pan.server.web.mapper.MenuMapper;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.domain.Device;
 import com.xiaohe.pan.server.web.model.domain.Menu;
@@ -16,11 +14,15 @@ import com.xiaohe.pan.server.web.model.vo.BoundMenuVO;
 import com.xiaohe.pan.server.web.service.BoundMenuService;
 import com.xiaohe.pan.server.web.service.MenuService;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu> implements BoundMenuService {
@@ -35,7 +37,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
     private MenuService menuService;
 
     @Override
-    public BoundMenu createBinding(Long userId, BoundMenu request) throws JsonProcessingException {
+    public BoundMenu createBinding(Long userId, BoundMenu request) throws RuntimeException {
         LambdaQueryWrapper<Device> deviceLambda = new LambdaQueryWrapper<>();
         deviceLambda.eq(Device::getUserId, userId);
         deviceLambda.eq(Device::getId, request.getDeviceId());
@@ -73,7 +75,11 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
                 .setRemoteMenuPath(m.getDisplayPath())
                 .setDirection(request.getDirection())
                 .setStatus(1);
-        baseMapper.insert(boundMenu);
+        int insert = baseMapper.insert(boundMenu);
+        if (insert < 1) {
+            log.error("绑定目录插入失败");
+            throw new BusinessException("绑定失败!");
+        }
 
         // 加入事件队列
         bindingEventQueue.addEvent(device.getDeviceKey(), boundMenu);
@@ -102,6 +108,19 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         LambdaQueryWrapper<BoundMenu> wrapper = new LambdaQueryWrapper<BoundMenu>()
                 .eq(BoundMenu::getDeviceId, deviceId);
         List<BoundMenu> boundMenus = baseMapper.selectList(wrapper);
-        return BoundMenuConvert.INSTANCE.boundMenuListConvertTOBoundMenuVOList(boundMenus);
+        if (CollectionUtils.isEmpty(boundMenus)) {
+            return Collections.emptyList();
+        }
+        List<Long> remoteMenuIdList = boundMenus.stream().map(BoundMenu::getRemoteMenuId).collect(Collectors.toList());
+        LambdaQueryWrapper<Menu> lambda = new LambdaQueryWrapper<>();
+        lambda.select(Menu::getId, Menu::getDisplayPath);
+        lambda.in(Menu::getId, remoteMenuIdList);
+        Map<Long, String> id2DisplayPath = menuService.list(lambda).stream()
+                .collect(Collectors.toMap(Menu::getId, Menu::getDisplayPath));
+        List<BoundMenuVO> boundMenuVOList = BoundMenuConvert.INSTANCE.boundMenuListConvertTOBoundMenuVOList(boundMenus);
+        for (BoundMenuVO menuVO : boundMenuVOList) {
+            menuVO.setRemoteMenuPath(id2DisplayPath.get(menuVO.getRemoteMenuId()));
+        }
+        return boundMenuVOList;
     }
 }

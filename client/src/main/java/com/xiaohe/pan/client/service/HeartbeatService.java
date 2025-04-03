@@ -64,7 +64,7 @@ public class HeartbeatService {
         
         bindings.forEach(binding -> {
             boolean success = monitor.bindDirectory(binding.getLocalPath(), binding.getRemoteMenuPath().toString(), binding.getRemoteMenuId());
-            System.out.println("绑定目录 " + binding.getLocalPath() + " => " + (success ? "成功" : "失败"));
+            System.out.println("绑定目录 " + binding.getLocalPath() + " => " + binding.getRemoteMenuPath() + " " + (success ? "成功" : "失败"));
         });
     }
 

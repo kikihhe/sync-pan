@@ -18,7 +18,7 @@ public class BoundMenu {
     private Integer direction;
     private String localPath;
     private Long remoteMenuId;
-    private Long remoteMenuPath;
+    private String remoteMenuPath;
     private Integer status;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
