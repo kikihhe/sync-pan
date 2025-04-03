@@ -18,15 +18,18 @@ public class BoundDirectory {
      */
     private final String remote;
 
+    private final Long remoteMenuId;
+
     /**
      * 此绑定文件夹对应的监听器
      */
     private final FileListener listener;
 
-    public BoundDirectory(File directory, String remote, FileListener listener) {
+    public BoundDirectory(File directory, String remote, FileListener listener, Long remoteMenuId) {
         this.directory = directory;
         this.listener = listener;
         this.remote = remote;
+        this.remoteMenuId = remoteMenuId;
     }
 
     public File getDirectory() {
@@ -41,4 +44,7 @@ public class BoundDirectory {
         return remote;
     }
 
+    public Long getRemoteMenuId() {
+        return remoteMenuId;
+    }
 }

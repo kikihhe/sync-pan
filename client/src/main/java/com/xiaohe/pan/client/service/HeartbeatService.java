@@ -1,6 +1,7 @@
 package com.xiaohe.pan.client.service;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
 import com.xiaohe.pan.client.config.ClientConfig;
 import com.xiaohe.pan.client.http.HttpClientManager;
 import com.xiaohe.pan.client.listener.FileListenerMonitor;
@@ -10,7 +11,9 @@ import com.xiaohe.pan.client.model.vo.DeviceHeartbeatVO;
 import com.xiaohe.pan.common.util.Result;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -28,26 +31,28 @@ public class HeartbeatService {
     }
 
     public void start() {
-        scheduler.scheduleAtFixedRate(this::sendHeartbeat, 0, 60, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::sendHeartbeat, 1, 2, TimeUnit.MINUTES);
     }
 
     private void sendHeartbeat() {
         try {
-            DeviceHeartbeatDTO dto = new DeviceHeartbeatDTO();
-            dto.setDeviceKey(ClientConfig.getDeviceKey());
-            dto.setSecret(ClientConfig.getSecret());
+            Map<String, String> map = new HashMap<>();
+            map.put("deviceKey", ClientConfig.getDeviceKey());
+            map.put("secret", ClientConfig.getSecret());
 
-            String data = JSON.toJSONString(dto);
-            String response = httpClient.post("/device/heartbeat", data);
+            String response = httpClient.post("/device/heartbeat", map, "");
 
-            Result result = JSON.parseObject(response, Result.class);
+            Result<DeviceHeartbeatVO> result = JSON.parseObject(
+                    response,
+                    new TypeReference<Result<DeviceHeartbeatVO>>(){}
+            );
             if (Objects.isNull(result)) {
                 throw new RuntimeException("获取的result为空, 请检查请求的发送以及服务端的响应");
             }
             if (result.getCode() != 200) {
                 throw new RuntimeException(result.getMessage());
             }
-            DeviceHeartbeatVO vo = (DeviceHeartbeatVO) result.getData();
+            DeviceHeartbeatVO vo = result.getData();
             processBinding(vo.getPendingBindings());
         } catch (Exception e) {
             System.err.println("心跳发送失败: " + e.getMessage());
@@ -58,7 +63,7 @@ public class HeartbeatService {
         if (bindings == null || bindings.isEmpty()) return;
         
         bindings.forEach(binding -> {
-            boolean success = monitor.bindDirectory(binding.getLocalPath(), binding.getRemoteMenuPath().toString());
+            boolean success = monitor.bindDirectory(binding.getLocalPath(), binding.getRemoteMenuPath().toString(), binding.getRemoteMenuId());
             System.out.println("绑定目录 " + binding.getLocalPath() + " => " + (success ? "成功" : "失败"));
         });
     }

@@ -1,6 +1,6 @@
 package com.xiaohe.pan.client.event;
 
-import com.xiaohe.pan.client.enums.EventType;
+import com.xiaohe.pan.common.enums.EventType;
 import com.xiaohe.pan.client.model.Event;
 
 import java.io.File;

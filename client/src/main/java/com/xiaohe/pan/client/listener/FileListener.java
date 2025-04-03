@@ -1,6 +1,6 @@
 package com.xiaohe.pan.client.listener;
 
-import com.xiaohe.pan.client.enums.EventType;
+import com.xiaohe.pan.common.enums.EventType;
 import com.xiaohe.pan.client.event.EventContainer;
 import com.xiaohe.pan.client.model.Event;
 import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;

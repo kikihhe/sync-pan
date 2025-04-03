@@ -36,9 +36,8 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     private SecretMapper secretMapper;
 
     @Override
-    public void verifySecret(String deviceKey, String secretValue) {
+    public Device verifySecret(String deviceKey, String secretValue) {
         LambdaQueryWrapper<Device> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-        lambdaQueryWrapper.select(Device::getSecretId);
         lambdaQueryWrapper.eq(Device::getDeviceKey, deviceKey);
         Device device = baseMapper.selectOne(lambdaQueryWrapper);
         if (Objects.isNull(device)) {
@@ -50,6 +49,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         if (!verifySecret) {
             throw new BusinessException("密钥错误!");
         }
+        return device;
     }
 
     @Override

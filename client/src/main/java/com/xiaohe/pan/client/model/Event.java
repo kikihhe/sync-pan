@@ -1,6 +1,6 @@
 package com.xiaohe.pan.client.model;
 
-import com.xiaohe.pan.client.enums.EventType;
+import com.xiaohe.pan.common.enums.EventType;
 import java.io.File;
 
 /**
@@ -30,13 +30,18 @@ public class Event implements Comparable<Event> {
     /**
      * 该文件绑定的远端文件
      */
-    private final String remoteDirectory;
+    private final String remoteMenuPath;
 
-    public Event(File file, EventType type, String remoteDirectory) {
+    /**
+     * 该文件绑定的远端的目录
+     */
+    private Long remoteMenuId;
+
+    public Event(File file, EventType type, String remoteMenuPath) {
         this.file = file;
         this.type = type;
         this.timestamp = System.currentTimeMillis();
-        this.remoteDirectory = remoteDirectory;
+        this.remoteMenuPath = remoteMenuPath;
         // 获取相对路径，用于在远程目录中定位文件
         this.relativePath = file.getAbsolutePath().substring(file.getParent().length() + 1);
     }
@@ -49,8 +54,8 @@ public class Event implements Comparable<Event> {
         return relativePath;
     }
 
-    public String getRemoteDirectory() {
-        return remoteDirectory;
+    public String getRemoteMenuPath() {
+        return remoteMenuPath;
     }
 
     public long getTimestamp() {
@@ -69,7 +74,15 @@ public class Event implements Comparable<Event> {
     @Override
     public String toString() {
         return String.format("Event{file=%s, type=%s, timestamp=%s, relativePath=%s, remoteDirectory=%s}",
-                file, type, timestamp, relativePath, remoteDirectory);
+                file, type, timestamp, relativePath, remoteMenuPath);
+    }
+
+    public Long getRemoteMenuId() {
+        return remoteMenuId;
+    }
+
+    public void setRemoteMenuId(Long remoteMenuId) {
+        this.remoteMenuId = remoteMenuId;
     }
 
     @Override

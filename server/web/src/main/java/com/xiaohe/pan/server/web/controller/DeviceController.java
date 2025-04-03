@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -60,11 +61,11 @@ public class DeviceController {
     }
 
     @PostMapping("/heartbeat")
-    public Result<DeviceHeartbeatVO> heartbeat(@RequestBody DeviceHeartbeatDTO heartbeatDTO) throws BusinessException {
-        logger.info("收到来自 deviceKey=" + heartbeatDTO.getDeviceKey() + "的心跳请求");
-        deviceService.verifySecret(heartbeatDTO.getDeviceKey(), heartbeatDTO.getSecret());
-        Long userId = SecurityContextUtil.getCurrentUserId();
-        Device device = deviceService.verifyDeviceOwnership(heartbeatDTO.getDeviceKey(), userId);
+    public Result<DeviceHeartbeatVO> heartbeat(HttpServletRequest request) throws BusinessException {
+        String deviceKey = request.getHeader("deviceKey");
+        String secret = request.getHeader("secret");
+        logger.info("收到来自 deviceKey=" + deviceKey + "的心跳请求");
+        Device device = deviceService.verifySecret(deviceKey, secret);
         return deviceService.processHeartbeat(device);
     }
 

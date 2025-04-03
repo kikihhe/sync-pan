@@ -10,6 +10,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.*;
 import org.apache.commons.io.monitor.FileAlterationMonitor;
 import org.apache.commons.io.monitor.FileAlterationObserver;
+import org.apache.commons.lang3.StringUtils;
 
 public class FileListenerMonitor {
 
@@ -27,7 +28,7 @@ public class FileListenerMonitor {
         private static final FileListenerMonitor INSTANCE = new FileListenerMonitor();
     }
 
-    public synchronized boolean bindDirectory(String local, String remote) {
+    public synchronized boolean bindDirectory(String local, String remoteMenuPath, Long remoteMenuId) {
         File dir = new File(local);
         // 检查目录是否存在并且是一个目录
         if (!dir.exists()) {
@@ -42,10 +43,10 @@ public class FileListenerMonitor {
             }
         }
         // 如果目录有效，创建监听器并绑定
-        FileListener listener = new FileListener(remote);
+        FileListener listener = new FileListener(remoteMenuPath);
         FileAlterationObserver observer = new FileAlterationObserver(dir, createFilter());
         observer.addListener(listener);
-        boundDirectories.add(new BoundDirectory(dir, remote, listener));
+        boundDirectories.add(new BoundDirectory(dir, remoteMenuPath, listener, remoteMenuId));
 
         return true;
     }
@@ -78,5 +79,17 @@ public class FileListenerMonitor {
         IOFileFilter directories = FileFilterUtils.and(FileFilterUtils.directoryFileFilter(), HiddenFileFilter.VISIBLE);
         IOFileFilter txtFiles = FileFilterUtils.and(FileFilterUtils.fileFileFilter(), FileFilterUtils.suffixFileFilter(".txt"));
         return FileFilterUtils.or(directories, txtFiles);
+    }
+
+    public BoundDirectory getBoundDirectoryByRemotePath(String remoteDirectory) {
+        if (StringUtils.isEmpty(remoteDirectory)) {
+            return null;
+        }
+        for (BoundDirectory bd : boundDirectories) {
+            if (bd.getRemote().equals(remoteDirectory)) {
+                return bd;
+            }
+        }
+        return null;
     }
 }

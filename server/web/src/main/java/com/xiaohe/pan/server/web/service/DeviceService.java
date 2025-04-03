@@ -12,5 +12,5 @@ public interface DeviceService extends IService<Device> {
 
     Result<DeviceHeartbeatVO> processHeartbeat(Device device) throws BusinessException;
 
-    void verifySecret(String deviceKey, String secret);
+    Device verifySecret(String deviceKey, String secret);
 }

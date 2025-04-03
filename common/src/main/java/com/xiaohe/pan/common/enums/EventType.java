@@ -1,4 +1,4 @@
-package com.xiaohe.pan.client.enums;
+package com.xiaohe.pan.common.enums;
 
 public enum EventType {
         FILE_CREATE(1, "创建文件"),

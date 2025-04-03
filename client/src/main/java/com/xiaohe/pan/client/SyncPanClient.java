@@ -25,8 +25,9 @@ public class SyncPanClient {
         FileSyncService fileSyncService = new FileSyncService(httpClient);
 
         // 启动服务
+        monitor.start();
         heartbeatService.start();
-        fileSyncService.start(monitor);
+        fileSyncService.start();
 
         // 注册关闭钩子
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

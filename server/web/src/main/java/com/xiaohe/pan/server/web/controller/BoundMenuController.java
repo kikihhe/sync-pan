@@ -3,6 +3,7 @@ package com.xiaohe.pan.server.web.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
+import com.xiaohe.pan.server.web.model.dto.BoundMenuDTO;
 import com.xiaohe.pan.server.web.model.vo.BoundMenuVO;
 import com.xiaohe.pan.server.web.service.BoundMenuService;
 import com.xiaohe.pan.server.web.service.DeviceService;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -48,4 +50,10 @@ public class BoundMenuController {
         return Result.success(boundMenuService.getDeviceBindings(userId, deviceId));
     }
 
+    @PostMapping("/sync")
+    public Result<String> sync(MultipartFile file, @RequestBody BoundMenuDTO boundMenu) {
+        System.out.println("接收到事件: " + boundMenu);
+        System.out.println("对应文件: " + file);
+        return Result.success();
+    }
 }
