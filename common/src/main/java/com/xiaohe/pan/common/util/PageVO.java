@@ -1,7 +1,10 @@
 package com.xiaohe.pan.common.util;
 
+import lombok.experimental.Accessors;
+
 import java.util.List;
 
+@Accessors(chain = true)
 public class PageVO<T> {
     private Integer total;
     private Integer pageNum;

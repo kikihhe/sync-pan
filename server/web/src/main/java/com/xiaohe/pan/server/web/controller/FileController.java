@@ -1,21 +1,25 @@
 package com.xiaohe.pan.server.web.controller;
 
 import com.xiaohe.pan.common.exceptions.BusinessException;
+import com.xiaohe.pan.common.util.PageQuery;
 import com.xiaohe.pan.common.util.PageVO;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.constants.FileConstants;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.FileChunk;
 import com.xiaohe.pan.server.web.model.dto.DeleteFileDTO;
+import com.xiaohe.pan.server.web.model.dto.DeletedFileQueryDTO;
 import com.xiaohe.pan.server.web.model.dto.MergeChunkFileDTO;
 import com.xiaohe.pan.server.web.model.dto.UpdateFileDTO;
 import com.xiaohe.pan.server.web.model.dto.UploadChunkFileDTO;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
+import com.xiaohe.pan.server.web.model.dto.RecycleFileDTO;
 import com.xiaohe.pan.server.web.model.vo.FileChunkVO;
 import com.xiaohe.pan.server.web.service.FileChunkService;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.util.HttpUtil;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
@@ -135,5 +139,27 @@ public class FileController {
     public Result<String> mergeChunk(MergeChunkFileDTO fileDTO) throws IOException {
         fileChunkService.mergeChunk(fileDTO);
         return Result.success("success");
+    }
+
+
+    @PostMapping("/getDeletedFile")
+    public Result<PageVO<File>> getDeletedFile(@RequestBody DeletedFileQueryDTO queryDTO) {
+        Long userId = SecurityContextUtil.getCurrentUser().getId();
+
+        PageVO<File> pageVO = fileService.getDeletedFiles(
+                userId,
+                queryDTO,
+                StringUtils.trimToEmpty(queryDTO.getFileName())
+        );
+        return Result.success(pageVO);
+    }
+
+    @PostMapping("/recycle")
+    public Result<Boolean> recycle(@RequestBody RecycleFileDTO recycleFileDTO) {
+        if (Objects.isNull(recycleFileDTO) || Objects.isNull(recycleFileDTO.getFileId()) || Objects.isNull(recycleFileDTO.getTargetMenuId())) {
+            return Result.error("文件ID和目标目录ID不能为空");
+        }
+        fileService.recycleFile(recycleFileDTO.getFileId(), recycleFileDTO.getTargetMenuId());
+        return Result.success(true);
     }
 }

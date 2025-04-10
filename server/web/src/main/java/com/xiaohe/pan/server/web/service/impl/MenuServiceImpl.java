@@ -110,7 +110,6 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
                 .stream()
                 .map(File::getId)
                 .collect(Collectors.toList());
-        // TODO 删除文件时可以标记数据里的文件为删除，然后异步删真实文件，或者定时任务扫描后删除
         fileService.removeBatchByIds(fileIdList);
         return true;
     }

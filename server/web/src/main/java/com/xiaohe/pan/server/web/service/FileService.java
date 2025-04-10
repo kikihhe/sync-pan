@@ -1,6 +1,8 @@
 package com.xiaohe.pan.server.web.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.xiaohe.pan.common.util.PageQuery;
+import com.xiaohe.pan.common.util.PageVO;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,4 +26,8 @@ public interface FileService extends IService<File> {
     void preview(Long fileId, HttpServletResponse response) throws IOException;
 
     void download(Long id, HttpServletResponse response) throws RuntimeException, IOException;
+
+    public PageVO<File> getDeletedFiles(Long userId, PageQuery pageQuery, String fileName);
+
+    void recycleFile(Long fileId, Long targetMenuId);
 }

@@ -1,8 +1,12 @@
 package com.xiaohe.pan.server.web.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiaohe.pan.common.exceptions.BusinessException;
+import com.xiaohe.pan.common.util.PageQuery;
+import com.xiaohe.pan.common.util.PageVO;
 import com.xiaohe.pan.server.web.constants.FileConstants;
 import com.xiaohe.pan.server.web.mapper.FileMapper;
 import com.xiaohe.pan.server.web.mapper.MenuMapper;
@@ -18,6 +22,7 @@ import com.xiaohe.pan.storage.api.StoreTypeEnum;
 import com.xiaohe.pan.storage.api.context.DeleteFileContext;
 import com.xiaohe.pan.storage.api.context.ReadFileContext;
 import com.xiaohe.pan.storage.api.context.StoreFileContext;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -114,16 +119,16 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
 
     @Override
     public void deleteFile(List<Long> fileList) throws IOException {
-        // 1. 查询文件的真实路径
+//        // 1. 查询文件的真实路径
         List<File> files = baseMapper.selectBatchIds(fileList);
-        List<String> realPathList = files
-                .stream().map(File::getRealPath)
-                .collect(Collectors.toList());
-        // 2. 删除真实文件
-        DeleteFileContext context = new DeleteFileContext();
-        context.setRealFilePathList(realPathList);
-
-        storageService.delete(context);
+//        List<String> realPathList = files
+//                .stream().map(File::getRealPath)
+//                .collect(Collectors.toList());
+//        // 2. 删除真实文件
+//        DeleteFileContext context = new DeleteFileContext();
+//        context.setRealFilePathList(realPathList);
+//
+//        storageService.delete(context);
 
         // 3. 取消关联
         baseMapper.deleteBatchIds(fileList);
@@ -178,6 +183,46 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         context.setRealPath(file.getRealPath());
         context.setOutputStream(response.getOutputStream());
         storageService.readFile(context);
+    }
+
+    @Override
+    public void recycleFile(Long fileId, Long targetMenuId) {
+        File file = baseMapper.selectById(fileId);
+        if (Objects.isNull(file)) {
+            throw new BusinessException("文件不存在");
+        }
+        Menu menu = menuMapper.selectById(targetMenuId);
+        if (Objects.isNull(menu)) {
+            throw new BusinessException("目录不存在");
+        }
+        if (!Objects.equals(file.getOwner(), SecurityContextUtil.getCurrentUser().getId())) {
+            throw new BusinessException("权限不足");
+        }
+
+        // 更新文件的目录ID
+        file.setMenuId(targetMenuId);
+        file.setDeleted(false);
+        baseMapper.updateById(file);
+
+        // 更新目标目录大小
+        menuUtil.onAddFile(targetMenuId, file.getFileSize());
+    }
+
+    @Override
+    public PageVO<File> getDeletedFiles(Long userId, PageQuery pageQuery, String fileName) {
+        Page<File> page = new Page<>(pageQuery.getPageNum(), pageQuery.getPageSize());
+        QueryWrapper<File> wrapper = new QueryWrapper<File>()
+                .eq("deleted", true)
+                .eq("owner", userId);
+        wrapper.like(StringUtils.isNotBlank(fileName), "file_name", fileName);
+        Page<File> result = page(page, wrapper);
+
+        PageVO<File> pageVO = new PageVO<>();
+        pageVO.setTotal((int) result.getTotal());
+        pageVO.setPageNum((int) result.getCurrent());
+        pageVO.setPageSize((int) result.getSize());
+        pageVO.setRecords(result.getRecords());
+        return pageVO;
     }
 
     /**
