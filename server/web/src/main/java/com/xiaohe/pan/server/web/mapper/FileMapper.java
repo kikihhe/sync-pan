@@ -17,4 +17,22 @@ public interface FileMapper extends BaseMapper<File> {
                                            @Param("start") Integer start,
                                            @Param("count") Integer count);
 
+    // 分页查询回收站内的文件
+    List<File> selectDeletedFiles(
+            @Param("userId") Long userId,
+            @Param("fileName") String fileName,
+            @Param("offset") Integer offset,
+            @Param("limit") Integer limit
+    );
+
+    // 回收站内文件的计数
+    Long countDeletedFiles(@Param("userId") Long userId, @Param("fileName") String fileName);
+
+    // 持久化删除
+    int permanentDeleteById(@Param("fileId") Long fileId);
+
+    File getDeletedFileById(@Param("fileId") Long fileId);
+
+    int updateForRecycle(@Param("fileId") Long fileId,
+                         @Param("targetMenuId") Long targetMenuId);
 }

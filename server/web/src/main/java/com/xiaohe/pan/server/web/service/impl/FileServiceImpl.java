@@ -26,11 +26,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -187,22 +189,22 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
 
     @Override
     public void recycleFile(Long fileId, Long targetMenuId) {
-        File file = baseMapper.selectById(fileId);
+        File file = baseMapper.getDeletedFileById(fileId);
         if (Objects.isNull(file)) {
             throw new BusinessException("文件不存在");
         }
-        Menu menu = menuMapper.selectById(targetMenuId);
-        if (Objects.isNull(menu)) {
-            throw new BusinessException("目录不存在");
+        if (!Objects.isNull(targetMenuId)) {
+            Menu menu = menuMapper.selectById(targetMenuId);
+            if (Objects.isNull(menu)) {
+                throw new BusinessException("目录不存在");
+            }
         }
         if (!Objects.equals(file.getOwner(), SecurityContextUtil.getCurrentUser().getId())) {
             throw new BusinessException("权限不足");
         }
 
         // 更新文件的目录ID
-        file.setMenuId(targetMenuId);
-        file.setDeleted(false);
-        baseMapper.updateById(file);
+        baseMapper.updateForRecycle(fileId, targetMenuId);
 
         // 更新目标目录大小
         menuUtil.onAddFile(targetMenuId, file.getFileSize());
@@ -210,19 +212,45 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
 
     @Override
     public PageVO<File> getDeletedFiles(Long userId, PageQuery pageQuery, String fileName) {
-        Page<File> page = new Page<>(pageQuery.getPageNum(), pageQuery.getPageSize());
-        QueryWrapper<File> wrapper = new QueryWrapper<File>()
-                .eq("deleted", true)
-                .eq("owner", userId);
-        wrapper.like(StringUtils.isNotBlank(fileName), "file_name", fileName);
-        Page<File> result = page(page, wrapper);
+        int pageSize = pageQuery.getPageSize();
+        int pageNum = pageQuery.getPageNum();
+        int offset = pageNum * pageSize;
+
+        List<File> records = baseMapper.selectDeletedFiles(
+                userId,
+                fileName,
+                offset,
+                pageSize
+        );
+
+        Long total = baseMapper.countDeletedFiles(userId, fileName);
 
         PageVO<File> pageVO = new PageVO<>();
-        pageVO.setTotal((int) result.getTotal());
-        pageVO.setPageNum((int) result.getCurrent());
-        pageVO.setPageSize((int) result.getSize());
-        pageVO.setRecords(result.getRecords());
+        pageVO.setTotal(total.intValue())
+                .setPageNum(pageNum + 1)
+                .setPageSize(pageSize)
+                .setRecords(records);
         return pageVO;
+    }
+
+    @Override
+    public boolean permanentDelete(Long fileId) throws BusinessException {
+        File file = getById(fileId);
+        if (Objects.isNull(file)) {
+            throw new BusinessException("文件不存在");
+        }
+        int result = baseMapper.permanentDeleteById(fileId);
+        if (result < 1) {
+            throw new BusinessException("删除失败");
+        }
+        DeleteFileContext context = new DeleteFileContext();
+        context.setRealFilePathList(Collections.singletonList(file.getRealPath()));
+        try {
+            storageService.delete(context);
+        } catch (Exception e) {
+            throw new BusinessException("删除失败");
+        }
+        return true;
     }
 
     /**

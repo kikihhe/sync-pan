@@ -59,4 +59,44 @@
     <!--#{?} 入参类别中的属性-->
     <!--Map<String,Object> selectMapById(Long id);-->
 
+
+    <select id="selectDeletedFiles" resultMap="File">
+        SELECT *
+        FROM file
+        WHERE deleted = true
+        AND owner = #{userId}
+        <if test="fileName != null and fileName != ''">
+            AND file_name LIKE CONCAT('%', #{fileName}, '%')
+        </if>
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countDeletedFiles" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM file
+        WHERE deleted = true
+        AND owner = #{userId}
+        <if test="fileName != null and fileName != ''">
+            AND file_name LIKE CONCAT('%', #{fileName}, '%')
+        </if>
+    </select>
+
+    <delete id="permanentDeleteById">
+        DELETE FROM file WHERE id = #{fileId}
+    </delete>
+
+    <select id="getDeletedFileById" resultMap="File">
+        SELECT *
+        FROM file
+        WHERE id = #{fileId}
+          AND deleted = true
+    </select>
+
+    <update id="updateForRecycle">
+        UPDATE file
+        SET
+            `menu_id` = #{targetMenuId},
+            `deleted` = false
+        WHERE `id` = #{fileId}
+    </update>
 </mapper>

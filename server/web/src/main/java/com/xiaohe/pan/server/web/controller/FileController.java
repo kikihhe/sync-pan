@@ -156,10 +156,24 @@ public class FileController {
 
     @PostMapping("/recycle")
     public Result<Boolean> recycle(@RequestBody RecycleFileDTO recycleFileDTO) {
-        if (Objects.isNull(recycleFileDTO) || Objects.isNull(recycleFileDTO.getFileId()) || Objects.isNull(recycleFileDTO.getTargetMenuId())) {
-            return Result.error("文件ID和目标目录ID不能为空");
+        if (Objects.isNull(recycleFileDTO) || Objects.isNull(recycleFileDTO.getFileId())) {
+            return Result.error("文件ID不能为空");
         }
         fileService.recycleFile(recycleFileDTO.getFileId(), recycleFileDTO.getTargetMenuId());
         return Result.success(true);
+    }
+
+    /**
+     * 彻底删除文件
+     * @param fileId
+     * @return
+     */
+    @PostMapping("/permanentDelete")
+    public Result<Boolean> permanentDelete(@RequestBody Long fileId) {
+        if (Objects.isNull(fileId)) {
+            return Result.error("文件不存在");
+        }
+        boolean r = fileService.permanentDelete(fileId);
+        return Result.success(r);
     }
 }

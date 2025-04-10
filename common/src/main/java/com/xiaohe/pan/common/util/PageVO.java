@@ -1,9 +1,11 @@
 package com.xiaohe.pan.common.util;
 
+import lombok.Getter;
 import lombok.experimental.Accessors;
 
 import java.util.List;
 
+@Getter
 @Accessors(chain = true)
 public class PageVO<T> {
     private Integer total;
@@ -11,35 +13,23 @@ public class PageVO<T> {
     private Integer pageSize;
     private List<T> records;
 
-    public List<T> getRecords() {
-        return records;
-    }
-
-    public void setRecords(List<T> records) {
+    public PageVO<T> setRecords(List<T> records) {
         this.records = records;
+        return this;
     }
 
-    public Integer getPageNum() {
-        return pageNum;
-    }
-
-    public void setPageNum(Integer pageNum) {
+    public PageVO<T> setPageNum(Integer pageNum) {
         this.pageNum = pageNum + 1;
+        return this;
     }
 
-    public Integer getPageSize() {
-        return pageSize;
-    }
-
-    public void setPageSize(Integer pageSize) {
+    public PageVO<T> setPageSize(Integer pageSize) {
         this.pageSize = pageSize;
+        return this;
     }
 
-    public Integer getTotal() {
-        return total;
-    }
-
-    public void setTotal(Integer total) {
+    public PageVO<T> setTotal(Integer total) {
         this.total = total;
+        return this;
     }
 }

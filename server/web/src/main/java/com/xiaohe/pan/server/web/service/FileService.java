@@ -30,4 +30,6 @@ public interface FileService extends IService<File> {
     public PageVO<File> getDeletedFiles(Long userId, PageQuery pageQuery, String fileName);
 
     void recycleFile(Long fileId, Long targetMenuId);
+
+    boolean permanentDelete(Long fileId);
 }
