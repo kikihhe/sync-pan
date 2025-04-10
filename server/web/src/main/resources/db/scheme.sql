@@ -1,3 +1,10 @@
+-- 创建数据库
+CREATE DATABASE IF NOT EXISTS sync_pan
+    DEFAULT CHARACTER SET utf8mb4
+    DEFAULT COLLATE utf8mb4_general_ci;
+
+-- 使用新建的数据库
+USE sync_pan;
 create table bound_menu
 (
     id               bigint auto_increment
