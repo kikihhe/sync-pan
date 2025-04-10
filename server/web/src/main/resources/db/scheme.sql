@@ -109,4 +109,5 @@ create table user
         unique (username)
 )
     charset = utf8mb4;
-insert into user('username', 'password', 'salt') values ('root', '123', 'asdfsafd');
+
+insert into user(`username`, `password`, `salt`) values ('root', '123', 'asdfsafd');
