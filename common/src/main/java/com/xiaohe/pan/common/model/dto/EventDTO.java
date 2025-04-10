@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class EventDTO {
     /**
-     * 文件相对路径
+     * 文件绝对路径
      */
     private String localPath;
     
@@ -42,4 +42,10 @@ public class EventDTO {
      * 设备密钥
      */
     private String secret;
+
+    /**
+     * 文件关联索引，用于关联上传的文件
+     * 如果是目录，则为null
+     */
+    private Integer fileIndex;
 }

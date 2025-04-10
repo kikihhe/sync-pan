@@ -57,27 +57,26 @@ public class FileSyncService {
         if (events.isEmpty()) {
             return;
         }
-        
+
         // 创建EventsDTO对象
         EventsDTO eventsDTO = new EventsDTO();
         List<EventDTO> eventDTOList = new ArrayList<>();
-        
+
         // 设置设备ID和密钥
         eventsDTO.setDeviceId(Long.parseLong(ClientConfig.getDeviceKey()));
         eventsDTO.setSecret(ClientConfig.getSecret());
-        
+
         // 准备文件列表和对应的键名列表
         List<File> filesToUpload = new ArrayList<>();
         List<String> fileKeys = new ArrayList<>();
-        Map<String, Integer> eventToFileMap = new HashMap<>(); // 用于关联事件和文件
-        int fileIndex = 0;
-        
+
         // 转换所有事件为EventDTO
+        int fileIndex = 0;
         for (Event event : events) {
             BoundDirectory boundDirectory = monitor.getBoundDirectoryByRemotePath(event.getRemoteMenuPath());
             if (boundDirectory != null) {
                 event.setRemoteMenuId(boundDirectory.getRemoteMenuId());
-                
+
                 EventDTO eventDTO = new EventDTO();
                 eventDTO.setLocalPath(event.getRelativePath());
                 eventDTO.setRemoteMenuId(event.getRemoteMenuId());
@@ -86,25 +85,27 @@ public class FileSyncService {
                 eventDTO.setTimestamp(event.getTimestamp());
                 eventDTO.setDeviceId(Long.parseLong(ClientConfig.getDeviceKey()));
                 eventDTO.setSecret(ClientConfig.getSecret());
-                
-                // 如果事件有关联的文件，添加到上传列表
+
+                // 如果事件有关联的文件且不是目录，添加到上传列表
                 if (event.getFile() != null && event.getFile().exists() && !event.getFile().isDirectory()) {
                     String fileKey = "file_" + fileIndex;
                     filesToUpload.add(event.getFile());
                     fileKeys.add(fileKey);
-                    eventToFileMap.put(event.getRelativePath(), fileIndex);
+                    eventDTO.setFileIndex(fileIndex);
                     fileIndex++;
+                } else {
+                    eventDTO.setFileIndex(null); // 目录没有关联文件
                 }
-                
+
                 eventDTOList.add(eventDTO);
             }
         }
-        
+
         eventsDTO.setEvents(eventDTOList);
-        
+
         // 序列化EventsDTO为JSON
         String jsonData = new ObjectMapper().writeValueAsString(eventsDTO);
-        
+
         // 发送请求，使用多文件上传方法
         String resp;
         if (!filesToUpload.isEmpty()) {
