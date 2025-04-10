@@ -21,6 +21,7 @@ import org.apache.http.util.EntityUtils;
 // 需要新增的import
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import java.io.File;
+import java.util.List;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -203,6 +204,45 @@ public class HttpClientManager {
 
         // 添加文件
         builder.addBinaryBody("file", file, ContentType.APPLICATION_OCTET_STREAM, file.getName());
+
+        // 添加JSON请求体
+        builder.addTextBody("body", body, ContentType.APPLICATION_JSON);
+
+        // 设置请求体
+        HttpEntity multipartEntity = builder.build();
+        httpPost.setEntity(multipartEntity);
+
+        // 执行请求
+        try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+            return EntityUtils.toString(response.getEntity());
+        }
+    }
+    
+    /**
+     * 上传多个文件和事件数据
+     * @param url 请求URL
+     * @param files 文件列表，每个文件对应一个事件
+     * @param fileKeys 文件对应的键名列表，用于在服务端识别每个文件
+     * @param body JSON格式的事件数据
+     * @return 服务器响应
+     * @throws IOException 如果发生IO异常
+     */
+    public String uploadMultipleFiles(String url, List<File> files, List<String> fileKeys, String body) throws IOException {
+        HttpPost httpPost = new HttpPost(SERVER_BASE_URL + url);
+
+        // 构建multipart请求体
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+
+        // 添加多个文件，每个文件使用唯一的键名
+        if (files != null && !files.isEmpty() && fileKeys != null && files.size() == fileKeys.size()) {
+            for (int i = 0; i < files.size(); i++) {
+                File file = files.get(i);
+                String key = fileKeys.get(i);
+                if (file != null && file.exists() && !file.isDirectory()) {
+                    builder.addBinaryBody(key, file, ContentType.APPLICATION_OCTET_STREAM, file.getName());
+                }
+            }
+        }
 
         // 添加JSON请求体
         builder.addTextBody("body", body, ContentType.APPLICATION_JSON);
