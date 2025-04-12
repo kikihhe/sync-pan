@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 public interface FileService extends IService<File> {
@@ -17,7 +18,7 @@ public interface FileService extends IService<File> {
 
     public Long countByMenuId(Long menuId, Long userId, String fileName);
 
-    public Boolean uploadFile(MultipartFile multipartFile, UploadFileDTO fileDTO) throws IOException;
+    public Boolean uploadFile(InputStream inputStream, UploadFileDTO fileDTO) throws IOException;
 
     public void deleteFile(List<Long> fileList) throws IOException;
 
@@ -32,4 +33,6 @@ public interface FileService extends IService<File> {
     void recycleFile(Long fileId, Long targetMenuId);
 
     boolean permanentDelete(Long fileId);
+
+    Boolean deleteByDisplayPath(String calculatedRemotePath) throws IOException;
 }

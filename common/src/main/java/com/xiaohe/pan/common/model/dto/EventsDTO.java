@@ -17,7 +17,7 @@ public class EventsDTO {
     /**
      * 设备ID
      */
-    private Long deviceId;
+    private String deviceKey;
     
     /**
      * 设备密钥

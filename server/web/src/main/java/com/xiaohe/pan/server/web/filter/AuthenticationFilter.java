@@ -39,7 +39,8 @@ public class AuthenticationFilter implements Filter {
             "/user/login",
             "/user/register",
             "/file/download",
-            "/device/heartbeat"
+            "/device/heartbeat",
+            "/bound/sync"
 //            "/device/"
     );
 

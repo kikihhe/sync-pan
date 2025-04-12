@@ -10,6 +10,8 @@ import java.util.List;
 public interface MenuService extends IService<Menu> {
     public Menu addMenuByPath(Menu menu);
 
+    public Boolean deleteMenuByPath(String displayPath);
+
     public List<Menu> getSubMenuByRange(Long menuId, Long userId, String name, Integer orderBy, Integer desc, Integer start, Integer count);
 
     public Menu getByUserAndMenuId(Long userId, Long menuId);
@@ -21,4 +23,6 @@ public interface MenuService extends IService<Menu> {
     public Boolean checkNameDuplicate(Long menuId, String name);
 
     MenuTreeDTO batchAddMenu(MenuTreeDTO menuTreeDTO, Long userId);
+
+    Menu getByDisplayPath(String menuPath);
 }

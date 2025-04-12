@@ -2,6 +2,7 @@ package com.xiaohe.pan.server.web.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.xiaohe.pan.common.model.dto.EventsDTO;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.vo.BoundMenuVO;
 
@@ -13,4 +14,6 @@ public interface BoundMenuService extends IService<BoundMenu> {
     void removeBinding(Long userId, Long bindingId);
 
     List<BoundMenuVO> getDeviceBindings(Long userId, Long deviceId);
+
+    void sync(EventsDTO eventsDTO);
 }

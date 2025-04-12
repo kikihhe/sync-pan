@@ -1,5 +1,9 @@
 package com.xiaohe.pan.common.enums;
 
+import lombok.Getter;
+
+
+@Getter
 public enum EventType {
         FILE_CREATE(1, "创建文件"),
         FILE_MODIFY(2, "修改文件"),
@@ -16,19 +20,4 @@ public enum EventType {
                 this.desc = desc;
         }
 
-        public int getCode() {
-                return code;
-        }
-
-        public void setCode(int code) {
-                this.code = code;
-        }
-
-        public String getDesc() {
-                return desc;
-        }
-
-        public void setDesc(String desc) {
-                this.desc = desc;
-        }
 }

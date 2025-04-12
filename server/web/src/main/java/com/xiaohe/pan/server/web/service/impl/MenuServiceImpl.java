@@ -191,7 +191,7 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
     @Override
     @Transactional
     public Menu addMenuByPath(Menu menu) {
-        Long userId = SecurityContextUtil.getCurrentUserId();
+        Long userId = menu.getOwner();
         Menu current = new Menu();
         String path = menu.getDisplayPath();
         String[] parts = path.split("/");
@@ -228,5 +228,14 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
             rollingPath = part;
         }
         return current;
+    }
+
+    @Override
+    public Boolean deleteMenuByPath(String displayPath) {
+        Menu menu = getByDisplayPath(displayPath);
+        if (Objects.isNull(menu)) {
+            throw new BusinessException("目录不存在");
+        }
+        return removeById(menu.getId());
     }
 }

@@ -43,7 +43,7 @@ public class Event implements Comparable<Event> {
         this.timestamp = System.currentTimeMillis();
         this.remoteMenuPath = remoteMenuPath;
         // 获取相对路径，用于在远程目录中定位文件
-        this.relativePath = file.getAbsolutePath().substring(file.getParent().length() + 1);
+        this.relativePath = file.getAbsolutePath();
     }
 
     public File getFile() {

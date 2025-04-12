@@ -59,7 +59,8 @@ public class FileController {
         if (nameDuplicate) {
             return Result.error("文件名重复!");
         }
-        fileService.uploadFile(fileDTO.getMultipartFile(), fileDTO);
+        fileDTO.setFileSize(fileDTO.getMultipartFile().getSize());
+        fileService.uploadFile(fileDTO.getMultipartFile().getInputStream(), fileDTO);
         return Result.success("上传成功");
     }
 

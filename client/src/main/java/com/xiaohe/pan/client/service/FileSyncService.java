@@ -1,7 +1,7 @@
 package com.xiaohe.pan.client.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.alibaba.fastjson.JSON;
+
 import com.xiaohe.pan.client.config.ClientConfig;
 import com.xiaohe.pan.client.event.EventContainer;
 import com.xiaohe.pan.client.http.HttpClientManager;
@@ -13,10 +13,9 @@ import com.xiaohe.pan.common.model.dto.EventsDTO;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -35,7 +34,7 @@ public class FileSyncService {
 
 
     public void start() {
-        scheduler.scheduleAtFixedRate(this::processEvents, 5, 300, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::processEvents, 5, 100, TimeUnit.SECONDS);
     }
 
     private void processEvents() {
@@ -63,15 +62,10 @@ public class FileSyncService {
         List<EventDTO> eventDTOList = new ArrayList<>();
 
         // 设置设备ID和密钥
-        eventsDTO.setDeviceId(Long.parseLong(ClientConfig.getDeviceKey()));
+        eventsDTO.setDeviceKey(ClientConfig.getDeviceKey());
         eventsDTO.setSecret(ClientConfig.getSecret());
 
-        // 准备文件列表和对应的键名列表
-        List<File> filesToUpload = new ArrayList<>();
-        List<String> fileKeys = new ArrayList<>();
-
         // 转换所有事件为EventDTO
-        int fileIndex = 0;
         for (Event event : events) {
             BoundDirectory boundDirectory = monitor.getBoundDirectoryByRemotePath(event.getRemoteMenuPath());
             if (boundDirectory != null) {
@@ -83,18 +77,12 @@ public class FileSyncService {
                 eventDTO.setRemoteMenuPath(event.getRemoteMenuPath());
                 eventDTO.setType(event.getType());
                 eventDTO.setTimestamp(event.getTimestamp());
-                eventDTO.setDeviceId(Long.parseLong(ClientConfig.getDeviceKey()));
-                eventDTO.setSecret(ClientConfig.getSecret());
 
-                // 如果事件有关联的文件且不是目录，添加到上传列表
+                // 读出文件内容
                 if (event.getFile() != null && event.getFile().exists() && !event.getFile().isDirectory()) {
-                    String fileKey = "file_" + fileIndex;
-                    filesToUpload.add(event.getFile());
-                    fileKeys.add(fileKey);
-                    eventDTO.setFileIndex(fileIndex);
-                    fileIndex++;
-                } else {
-                    eventDTO.setFileIndex(null); // 目录没有关联文件
+                    String localPath = event.getRelativePath();
+                    byte[] bytes = Files.readAllBytes(new File(localPath).toPath());
+                    eventDTO.setData(bytes);
                 }
 
                 eventDTOList.add(eventDTO);
@@ -104,16 +92,10 @@ public class FileSyncService {
         eventsDTO.setEvents(eventDTOList);
 
         // 序列化EventsDTO为JSON
-        String jsonData = new ObjectMapper().writeValueAsString(eventsDTO);
+        String jsonData = JSON.toJSONString(eventsDTO);
 
-        // 发送请求，使用多文件上传方法
-        String resp;
-        if (!filesToUpload.isEmpty()) {
-            resp = httpClient.uploadMultipleFiles("/bound/sync", filesToUpload, fileKeys, jsonData);
-        } else {
-            // 如果没有文件需要上传，使用普通的POST请求
-            resp = httpClient.post("/bound/sync", jsonData);
-        }
+        // 发送请求，使用普通的POST请求，因为文件已经包含在JSON中
+        String resp = httpClient.post("/bound/sync", jsonData);
         System.out.println("批量同步响应: " + resp);
     }
 

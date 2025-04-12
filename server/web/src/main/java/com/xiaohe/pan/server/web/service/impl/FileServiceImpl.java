@@ -31,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -75,14 +76,14 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
     }
 
     @Override
-    public Boolean uploadFile(MultipartFile multipartFile, UploadFileDTO fileDTO) throws IOException {
+    public Boolean uploadFile(InputStream inputStream, UploadFileDTO fileDTO) throws IOException {
         File file = new File();
         try {
             // 1. 保存真实文件
             StoreFileContext storeFileContext = new StoreFileContext()
                     .setFilename(fileDTO.getFileName())
-                    .setTotalSize(multipartFile.getSize())
-                    .setInputStream(multipartFile.getInputStream());
+                    .setTotalSize(fileDTO.getFileSize())
+                    .setInputStream(inputStream);
             // 调用文件服务，文件的真实路径会保存在 context 中
             storageService.store(storeFileContext);
 
@@ -99,7 +100,7 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
             file.setMenuId(fileDTO.getMenuId());
             file.setOwner(SecurityContextUtil.getCurrentUser().getId());
             file.setRealPath(storeFileContext.getRealPath());
-            file.setFileSize(multipartFile.getSize());
+            file.setFileSize(fileDTO.getFileSize());
             file.setIdentifier(fileDTO.getIdentifier());
             Integer storageCode = StoreTypeEnum.getCodeByDesc(storageType);
             file.setStorageType(storageCode);
@@ -253,6 +254,18 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         return true;
     }
 
+    @Override
+    public Boolean deleteByDisplayPath(String displayPath) throws IOException {
+        File file = getByDisplayPath(displayPath);
+        deleteFile(Collections.singletonList(file.getId()));
+        return true;
+    }
+
+    public File getByDisplayPath(String displayPath) {
+        LambdaQueryWrapper<File> lambda = new LambdaQueryWrapper<>();
+        lambda.eq(File::getDisplayPath, displayPath);
+        return baseMapper.selectOne(lambda);
+    }
     /**
      * 添加公共的文件读取响应头
      *

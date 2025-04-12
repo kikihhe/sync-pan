@@ -1,8 +1,9 @@
 package com.xiaohe.pan.client.http;
 
 import cn.hutool.core.collection.CollUtil;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.alibaba.fastjson.JSON;
+import com.xiaohe.pan.common.model.dto.EventDTO;
+import com.xiaohe.pan.common.model.dto.EventsDTO;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -18,9 +19,10 @@ import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.util.EntityUtils;
-// 需要新增的import
 import org.apache.http.entity.mime.MultipartEntityBuilder;
+
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 import java.io.IOException;
@@ -131,7 +133,7 @@ public class HttpClientManager {
 
     // 带回调的异步POST
     public Future<HttpResponse> asyncPostWithCallback(String url, Map<String, String> headers, String body,
-            FutureCallback<HttpResponse> callback) {
+                                                      FutureCallback<HttpResponse> callback) {
         HttpPost httpPost = new HttpPost(SERVER_BASE_URL + url);
         if (CollUtil.isEmpty(headers)) {
             headers = generateDefaultHeaders();
@@ -217,17 +219,19 @@ public class HttpClientManager {
             return EntityUtils.toString(response.getEntity());
         }
     }
-    
+
     /**
      * 上传多个文件和事件数据
-     * @param url 请求URL
-     * @param files 文件列表，每个文件对应一个事件
+     *
+     * @param url      请求URL
+     * @param files    文件列表，每个文件对应一个事件
      * @param fileKeys 文件对应的键名列表，用于在服务端识别每个文件
-     * @param body JSON格式的事件数据
+     * @param body     JSON格式的事件数据
      * @return 服务器响应
      * @throws IOException 如果发生IO异常
      */
-    public String uploadMultipleFiles(String url, List<File> files, List<String> fileKeys, String body) throws IOException {
+    public String uploadMultipleFiles(String url, List<File> files, List<String> fileKeys, String body) throws
+            IOException {
         HttpPost httpPost = new HttpPost(SERVER_BASE_URL + url);
 
         // 构建multipart请求体
@@ -256,4 +260,5 @@ public class HttpClientManager {
             return EntityUtils.toString(response.getEntity());
         }
     }
+
 }
