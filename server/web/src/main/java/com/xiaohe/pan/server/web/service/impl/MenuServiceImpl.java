@@ -211,6 +211,7 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
             if (!Objects.isNull(byDisplayPath)) {
                 currentParentId = byDisplayPath.getId();
                 currentLevel++;
+                rollingPath = part;
                 continue;
             }
             current = new Menu()

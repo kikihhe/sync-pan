@@ -77,6 +77,7 @@ public class FileListenerMonitor {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        System.out.println("fileAlterationMonitor started");
     }
     public void stop() throws Exception {
         fileAlterationMonitor.stop();

@@ -5,6 +5,8 @@ import com.xiaohe.pan.client.service.FileSyncService;
 import com.xiaohe.pan.client.http.HttpClientManager;
 import com.xiaohe.pan.client.listener.FileListenerMonitor;
 import com.xiaohe.pan.client.service.HeartbeatService;
+import com.xiaohe.pan.client.storage.MD5StorageFactory;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,8 +22,9 @@ public class SyncPanClient {
         // 初始化组件
         HttpClientManager httpClient = new HttpClientManager(SERVER_BASE_URL);
 
+
         FileListenerMonitor monitor = FileListenerMonitor.getInstance();
-        HeartbeatService heartbeatService = new HeartbeatService(httpClient);
+        HeartbeatService heartbeatService = new HeartbeatService(httpClient, MD5StorageFactory.getInstance());
         FileSyncService fileSyncService = new FileSyncService(httpClient);
 
         // 启动服务

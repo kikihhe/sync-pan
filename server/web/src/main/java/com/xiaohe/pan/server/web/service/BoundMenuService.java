@@ -6,6 +6,7 @@ import com.xiaohe.pan.common.model.dto.EventsDTO;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.vo.BoundMenuVO;
 
+import java.io.IOException;
 import java.util.List;
 
 public interface BoundMenuService extends IService<BoundMenu> {
@@ -15,5 +16,5 @@ public interface BoundMenuService extends IService<BoundMenu> {
 
     List<BoundMenuVO> getDeviceBindings(Long userId, Long deviceId);
 
-    void sync(EventsDTO eventsDTO);
+    void sync(EventsDTO eventsDTO) throws IOException;
 }

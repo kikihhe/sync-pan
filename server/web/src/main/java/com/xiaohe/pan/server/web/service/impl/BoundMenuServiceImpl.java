@@ -140,7 +140,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
     }
 
     @Override
-    public void sync(EventsDTO eventsDTO) {
+    public void sync(EventsDTO eventsDTO) throws IOException {
         // 处理每个事件
         List<EventDTO> menuEvents = new ArrayList<>();
         List<EventDTO> fileEvents = new ArrayList<>();
@@ -149,7 +149,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         // 获取绑定记录
         LambdaQueryWrapper<BoundMenu> lambda = new LambdaQueryWrapper<>();
         lambda.eq(BoundMenu::getRemoteMenuId, boundMenu.getId());
-        BoundMenu boundRecord = baseMapper.selectOne(lambda);
+        BoundMenu boundRecord = baseMapper.selectOne(lambda); // TODO boundRecord 修改一下 lastSyncTime
         // 将事件分类为目录事件和文件事件
         for (EventDTO eventDTO : eventsDTO.getEvents()) {
             switch (eventDTO.getType()) {
@@ -190,6 +190,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
             switch (eventDTO.getType()) {
                 case FILE_CREATE:
                     // 创建文件
+                    fileCreateEvent(boundRecord, boundMenu, eventDTO);
                     break;
                 case FILE_MODIFY:
                     // 修改文件
@@ -197,7 +198,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
                     break;
                 case FILE_DELETE:
                     // 删除文件
-
+                    fileDeleteEvent(boundRecord, boundMenu, eventDTO);
                     break;
             }
         }
@@ -314,4 +315,5 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         String calculatedRemotePath = calculateRemotePath(localBoundMenuPath, remoteMenuPath, eventDTO.getLocalPath());
         fileService.deleteByDisplayPath(calculatedRemotePath);
     }
+
 }

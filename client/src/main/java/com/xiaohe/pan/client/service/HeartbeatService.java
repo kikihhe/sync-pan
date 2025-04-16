@@ -6,11 +6,13 @@ import com.xiaohe.pan.client.config.ClientConfig;
 import com.xiaohe.pan.client.http.HttpClientManager;
 import com.xiaohe.pan.client.listener.FileListenerMonitor;
 import com.xiaohe.pan.client.model.BoundMenu;
-import com.xiaohe.pan.client.model.dto.DeviceHeartbeatDTO;
 import com.xiaohe.pan.client.model.vo.DeviceHeartbeatVO;
+import com.xiaohe.pan.client.storage.MD5StorageFactory;
 import com.xiaohe.pan.common.util.Result;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,13 +27,16 @@ public class HeartbeatService {
     private final HttpClientManager httpClient;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final FileListenerMonitor monitor = FileListenerMonitor.getInstance();
+    private final MD5StorageFactory md5StorageFactory;
 
-    public HeartbeatService(HttpClientManager httpClient) {
+    public HeartbeatService(HttpClientManager httpClient, MD5StorageFactory md5StorageFactory) {
         this.httpClient = httpClient;
+        this.md5StorageFactory = md5StorageFactory;
     }
 
     public void start() {
         scheduler.scheduleAtFixedRate(this::sendHeartbeat, 1, 2, TimeUnit.MINUTES);
+        System.out.println("heartbeatService started");
     }
 
     private void sendHeartbeat() {
@@ -65,6 +70,20 @@ public class HeartbeatService {
         bindings.forEach(binding -> {
             boolean success = monitor.bindDirectory(binding.getLocalPath(), binding.getRemoteMenuPath().toString(), binding.getRemoteMenuId());
             System.out.println("绑定目录 " + binding.getLocalPath() + " => " + binding.getRemoteMenuPath() + " " + (success ? "成功" : "失败"));
+            if (success) {
+                // 绑定成功后，创建或获取 MD5 存储器
+                try {
+                    md5StorageFactory.createOrGetStorage(binding.getLocalPath());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                System.out.println("MD5Storage 初始化: " + binding.getLocalPath());
+            } else {
+                // 如果绑定监听器失败，不应该创建 MD5 storage
+                // 或者尝试移除可能存在的旧 storage
+                Path localPath = Paths.get(binding.getLocalPath());
+                md5StorageFactory.removeStorage(localPath);
+            }
         });
     }
 
