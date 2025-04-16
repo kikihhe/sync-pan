@@ -104,6 +104,6 @@
         SELECT *
         FROM file
         WHERE deleted = true
-        AND update_time < DATE_SUB(NOW(), INTERVAL 30 DAY)
+        AND update_time &lt; DATE_SUB(NOW(), INTERVAL 30 DAY)
     </select>
 </mapper>
