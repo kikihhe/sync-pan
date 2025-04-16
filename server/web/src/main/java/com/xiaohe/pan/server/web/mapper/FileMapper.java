@@ -35,4 +35,10 @@ public interface FileMapper extends BaseMapper<File> {
 
     int updateForRecycle(@Param("fileId") Long fileId,
                          @Param("targetMenuId") Long targetMenuId);
+
+    /**
+     * 查询30天前被删除的文件
+     * @return 文件列表
+     */
+    List<File> selectFilesDeletedBefore30Days();
 }

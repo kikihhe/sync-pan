@@ -35,4 +35,6 @@ public interface FileService extends IService<File> {
     boolean permanentDelete(Long fileId);
 
     Boolean deleteByDisplayPath(String calculatedRemotePath) throws IOException;
+
+    List<File> selectFilesDeletedBefore30Days();
 }

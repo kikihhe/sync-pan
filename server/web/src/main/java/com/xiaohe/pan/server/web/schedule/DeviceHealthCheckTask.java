@@ -12,9 +12,9 @@ import javax.annotation.Resource;
 import java.time.LocalDateTime;
 
 @Component
-public class DeviceHealthChecker {
+public class DeviceHealthCheckTask {
 
-    private final Logger logger = LoggerFactory.getLogger(DeviceHealthChecker.class);
+    private final Logger logger = LoggerFactory.getLogger(DeviceHealthCheckTask.class);
 
     @Resource
     private DeviceMapper deviceMapper;

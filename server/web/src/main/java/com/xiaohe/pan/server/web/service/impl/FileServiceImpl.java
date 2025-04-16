@@ -261,6 +261,11 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         return true;
     }
 
+    @Override
+    public List<File> selectFilesDeletedBefore30Days() {
+        return baseMapper.selectFilesDeletedBefore30Days();
+    }
+
     public File getByDisplayPath(String displayPath) {
         LambdaQueryWrapper<File> lambda = new LambdaQueryWrapper<>();
         lambda.eq(File::getDisplayPath, displayPath);

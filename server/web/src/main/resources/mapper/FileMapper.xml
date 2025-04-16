@@ -99,4 +99,11 @@
             `deleted` = false
         WHERE `id` = #{fileId}
     </update>
+    <!-- 查询30天前被删除的文件 -->
+    <select id="selectFilesDeletedBefore30Days" resultType="com.xiaohe.pan.server.web.model.domain.File">
+        SELECT *
+        FROM file
+        WHERE deleted = true
+        AND update_time < DATE_SUB(NOW(), INTERVAL 30 DAY)
+    </select>
 </mapper>
