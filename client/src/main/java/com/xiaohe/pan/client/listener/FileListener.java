@@ -214,97 +214,96 @@ public class FileListener extends FileAlterationListenerAdaptor {
     }
     private void handleDirectoryCreate(Path dirPath) {
         Optional<MD5Storage> storageOpt = MD5StorageFactory.getInstance().findStorageForPath(dirPath);
-        if (!storageOpt.isPresent() || !Files.isDirectory(dirPath)) return; // Check if it's actually a directory now
+        if (!storageOpt.isPresent() || !Files.isDirectory(dirPath)) return; // 先检查一下这玩意儿是不是真的是个目录
 
         MD5Storage storage = storageOpt.get();
         String relativePath = storage.getRelativePath(dirPath);
 
         storage.lock.writeLock().lock();
         try {
-            // Use addPathToTree which handles adding the node and linking parents
-            // It initially sets directory MD5 to null.
-            Node newNode = storage.addPathToTree(dirPath, false); // Add node first
+            // 用addPathToTree来处理节点添加和父节点关联
+            // 一开始会把目录的MD5设为空
+            Node newNode = storage.addPathToTree(dirPath, false); // 先把节点加进去
 
             if (newNode != null) {
-                // Calculate empty directory MD5 and set it
+                // 计算空目录的MD5值并设置上
                 String emptyDirMD5 = MD5Util.calculateMD5FromString("");
                 newNode.setMd5(emptyDirMD5);
 
 
                 storage.updateParentDirectoryMD5s(newNode);
 
-                // Add the event
+                // 添加事件
                 eventContainer.addEvent(createEvent(storage, dirPath, EventType.DIRECTORY_CREATE));
-                // System.out.println("  -> Processed DIRECTORY_CREATE: " + relativePath);
+                // System.out.println("  -> 处理完目录创建啦：" + relativePath);
             } else {
-                // Node might already exist if event is duplicated, or addPathToTree failed
-                // System.out.println("  Directory node already exists or creation failed for: " + relativePath);
-                // Check if it exists and update MD5 just in case
+                // 如果事件重复了或者addPathToTree失败了，节点可能已经存在
+                // System.out.println("  目录节点已经存在或者创建失败了：" + relativePath);
+                // 检查一下是不是已经存在，顺便更新下MD5
                 Optional<Node> existingNodeOpt = storage.getNode(relativePath);
                 if(existingNodeOpt.isPresent() && existingNodeOpt.get().isDirectory() && existingNodeOpt.get().getMd5() == null){
                     existingNodeOpt.get().setMd5(MD5Util.calculateMD5FromString(""));
                     storage.updateParentDirectoryMD5s(existingNodeOpt.get());
-                    eventContainer.addEvent(createEvent(storage, dirPath, EventType.DIRECTORY_CREATE)); // Still add event
+                    eventContainer.addEvent(createEvent(storage, dirPath, EventType.DIRECTORY_CREATE)); // 还是要加个事件
                 }
             }
         } catch (IOException e) {
-            System.err.println("Error handling directory create for " + relativePath + ": " + e.getMessage());
+            System.err.println("处理目录创建的时候出错了，目录：" + relativePath + "，错误：" + e.getMessage());
         } finally {
             storage.lock.writeLock().unlock();
         }
     }
+
     private void handleDirectoryDeleteEvent(Path dirPath) {
         Optional<MD5Storage> storageOpt = MD5StorageFactory.getInstance().findStorageForPath(dirPath);
-        // It's possible the storage root itself was deleted, handle gracefully.
+        // 可能存储根目录本身被删除了，要优雅地处理一下
         if (!storageOpt.isPresent()) {
-            // Check if the path *was* a storage root
-            // md5Factory.removeStorage(dirPath); // Clean up factory map if root deleted
+            // 检查一下这个路径是不是存储根目录
+            // md5Factory.removeStorage(dirPath); // 如果根目录被删了就清理一下工厂映射
             return;
         }
 
         MD5Storage storage = storageOpt.get();
         String relativePath = storage.getRelativePath(dirPath);
-        handleDirectoryDelete(dirPath, relativePath, storage); // Call the common logic
+        handleDirectoryDelete(dirPath, relativePath, storage); // 调用通用的删除处理逻辑
     }
+
     private void handleDirectoryDelete(Path dirPath, String relativePath, MD5Storage storage) {
         storage.lock.writeLock().lock();
         try {
             Optional<Node> nodeOpt = storage.getNode(relativePath);
             if (nodeOpt.isPresent()) {
-
                 storage.removeNodeFromTree(relativePath, true);
                 eventContainer.addEvent(createEvent(storage, dirPath, EventType.DIRECTORY_DELETE));
             } else {
-
+                // 节点已经不在了，啥都不用做
             }
         } catch (IOException e) {
-            System.err.println("Error handling directory delete for " + relativePath + ": " + e.getMessage());
+            System.err.println("处理目录删除的时候出错了，目录：" + relativePath + "，错误：" + e.getMessage());
         } finally {
             storage.lock.writeLock().unlock();
         }
     }
+
     private void handleFileCreate(Path filePath) {
         Optional<MD5Storage> storageOpt = MD5StorageFactory.getInstance().findStorageForPath(filePath);
 
-        if (!storageOpt.isPresent() || !Files.isRegularFile(filePath)) return;
+        if (!storageOpt.isPresent() || !Files.isRegularFile(filePath)) return; // 检查一下是不是普通文件
 
         MD5Storage storage = storageOpt.get();
         String relativePath = storage.getRelativePath(filePath);
 
         storage.lock.writeLock().lock();
         try {
-
             Node newNode = storage.addPathToTree(filePath, true);
 
             if (newNode != null) {
                 eventContainer.addEvent(createEvent(storage, filePath, EventType.FILE_CREATE));
-
             } else {
-
-
+                // 节点已经存在或者创建失败了，啥都不用做
             }
         } catch (IOException e) {
-            System.err.println("Error handling file create for " + relativePath + ": " + e.getMessage());
+            System.err.println("处理文件创建的时候出错了，文件：" + relativePath + "，错误：" + e.getMessage());
         } finally {
             storage.lock.writeLock().unlock();
         }
@@ -318,7 +317,7 @@ public class FileListener extends FileAlterationListenerAdaptor {
 
         // 先检查文件是否还存在
         if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
-            // 文件不见了或者变成目录了？就当作删除处理
+            // 文件不见了或者变成目录了，就当作删除处理
             // System.out.println("    文件不存在或者不是普通文件了，当作删除处理：" + relativePath);
             handleFileDeleteEvent(filePath); // 用事件处理器来检查存储
             return;
@@ -329,46 +328,46 @@ public class FileListener extends FileAlterationListenerAdaptor {
     }
 
     /**
-     * Core logic for checking and handling file modification. Assumes file exists.
+     * 检查和处理文件修改的核心逻辑。这里假设文件是存在的哦
      */
     private void handlePotentialFileModification(Path filePath, String relativePath, MD5Storage storage) {
-        storage.lock.writeLock().lock(); // Need write lock to potentially update MD5
+        storage.lock.writeLock().lock(); // 需要写锁来更新MD5
         try {
             Optional<Node> nodeOpt = storage.getNode(relativePath);
             if (!nodeOpt.isPresent()) {
-                // File exists but not in tree? Should be treated as create.
-                // System.out.println("    File found (" + relativePath + ") but not in storage, treating as create.");
-                // Release write lock before calling another method that acquires it
+                // 文件存在但不在我们的存储树里，当作新文件处理
+                // System.out.println("    发现文件(" + relativePath + ")不在存储中，当作新文件处理啦");
+                // 先把写锁释放掉，因为handleFileCreate也要用锁
                 storage.lock.writeLock().unlock();
                 handleFileCreate(filePath);
-                storage.lock.writeLock().lock(); // Re-acquire lock if needed (though handleFileCreate finishes)
-                return; // Exit after handling as create
+                storage.lock.writeLock().lock(); // 重新获取锁（虽然handleFileCreate已经处理完了）
+                return;
             }
 
             Node node = nodeOpt.get();
             if (node.isDirectory()) {
-                System.err.println("Warning: Checking modification for a directory node: " + relativePath);
-                return; // Should not happen
+                System.err.println("警告：在检查目录节点的修改呢：" + relativePath);
+                return; // 这种情况不应该发生
             }
 
             String oldMD5 = node.getMd5();
-            String newMD5 = MD5Util.getMD5(filePath); // Calculate current MD5
+            String newMD5 = MD5Util.getMD5(filePath); // 计算当前的MD5值
 
             if (newMD5 != null && !newMD5.equals(oldMD5)) {
-                // System.out.println("  Detected FILE_MODIFY: " + relativePath + " OldMD5: " + oldMD5 + " NewMD5: " + newMD5);
-                // Update MD5 in the node and trigger parent updates
+                // System.out.println("  检测到文件修改：" + relativePath + " 旧MD5: " + oldMD5 + " 新MD5: " + newMD5);
+                // 更新节点的MD5，同时更新父节点
                 storage.updateFileNodeMD5(relativePath, newMD5);
                 eventContainer.addEvent(createEvent(storage, filePath, EventType.FILE_MODIFY));
             } else if (newMD5 == null) {
-                // Failed to calculate new MD5 for existing file - permission error?
-                System.err.println("Warning: Cannot calculate MD5 for existing file, skipping modification check: " + relativePath);
+                // 计算新文件的MD5失败 - 可能是权限问题
+                System.err.println("警告：无法计算文件的MD5，跳过修改检查：" + relativePath);
             }
-            // else MD5 unchanged or newMD5 is null -> do nothing
+            // 要么是MD5没变，要么是newMD5为空 -> 啥都不用做
 
         } catch (IOException e) {
-            System.err.println("Error during file modification check for " + relativePath + ": " + e.getMessage());
+            System.err.println("检查文件修改时出错，文件：" + relativePath + "，错误：" + e.getMessage());
         } finally {
-            // Only unlock if the current thread still holds the lock
+            // 只有当前线程还持有锁的时候才解锁
             if (storage.lock.isWriteLockedByCurrentThread()) {
                 storage.lock.writeLock().unlock();
             }
@@ -402,7 +401,6 @@ public class FileListener extends FileAlterationListenerAdaptor {
     }
 
     private Event createEvent(MD5Storage storage, Path absolutePath, EventType type) {
-        // Assumes Event constructor takes: Path, EventType, remotePathString, storageRootPath
         File file = new File(absolutePath.toString());
         return new Event(file, type, this.remoteDirectory);
     }
