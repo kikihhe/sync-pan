@@ -6,6 +6,8 @@ import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
 import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.common.model.dto.EventDTO;
 import com.xiaohe.pan.common.model.dto.EventsDTO;
+import com.xiaohe.pan.common.model.vo.EventVO;
+import com.xiaohe.pan.common.util.MD5Util;
 import com.xiaohe.pan.server.web.convert.BoundMenuConvert;
 import com.xiaohe.pan.server.web.core.queue.BindingEventQueue;
 import com.xiaohe.pan.server.web.mapper.BoundMenuMapper;
@@ -18,20 +20,15 @@ import com.xiaohe.pan.server.web.model.vo.BoundMenuVO;
 import com.xiaohe.pan.server.web.service.BoundMenuService;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.service.MenuService;
-import org.apache.commons.codec.digest.Md5Crypt;
-import org.apache.tomcat.util.http.fileupload.disk.DiskFileItem;
-import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.multipart.commons.CommonsMultipartFile;
 
 import javax.annotation.Resource;
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -140,7 +137,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
     }
 
     @Override
-    public void sync(EventsDTO eventsDTO) throws IOException {
+    public List<EventVO> sync(EventsDTO eventsDTO) throws IOException {
         // 处理每个事件
         List<EventDTO> menuEvents = new ArrayList<>();
         List<EventDTO> fileEvents = new ArrayList<>();
@@ -149,7 +146,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         // 获取绑定记录
         LambdaQueryWrapper<BoundMenu> lambda = new LambdaQueryWrapper<>();
         lambda.eq(BoundMenu::getRemoteMenuId, boundMenu.getId());
-        BoundMenu boundRecord = baseMapper.selectOne(lambda); // TODO boundRecord 修改一下 lastSyncTime
+        BoundMenu boundRecord = baseMapper.selectOne(lambda);
         // 将事件分类为目录事件和文件事件
         for (EventDTO eventDTO : eventsDTO.getEvents()) {
             switch (eventDTO.getType()) {
@@ -168,19 +165,33 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         menuEvents.sort((o1, o2) -> (int) (o1.getTimestamp() - o2.getTimestamp()));
         fileEvents.sort((o1, o2) -> (int) (o1.getTimestamp() - o2.getTimestamp()));
 
+
+        // 修改最后同步时间
+        boundRecord.setLastSyncedAt(LocalDateTime.now());
+        baseMapper.updateById(boundRecord);
+        // 返回结果
+        List<EventVO> eventVO = handleEvents(menuEvents, fileEvents, boundRecord, boundMenu);
+        return eventVO;
+    }
+
+    public List<EventVO> handleEvents(List<EventDTO> menuEvents, List<EventDTO> fileEvents, BoundMenu boundRecord, Menu boundMenu) throws IOException {
+        List<EventVO> eventVOList = new ArrayList<>();
+        EventVO eventVO;
         // 处理目录事件
         for (EventDTO eventDTO : menuEvents) {
             switch (eventDTO.getType()) {
                 case DIRECTORY_CREATE:
                     // 创建目录
-                    menuCreateEvent(boundRecord, boundMenu, eventDTO);
+                    eventVO = menuCreateEvent(boundRecord, boundMenu, eventDTO);
+                    eventVOList.add(eventVO);
                     break;
                 case DIRECTORY_MODIFY:
                     // 修改目录
                     break;
                 case DIRECTORY_DELETE:
                     // 删除目录
-                    menuDeleteEvent(boundRecord, boundMenu, eventDTO);
+                    eventVO = menuDeleteEvent(boundRecord, boundMenu, eventDTO);
+                    eventVOList.add(eventVO);
                     break;
             }
         }
@@ -190,7 +201,8 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
             switch (eventDTO.getType()) {
                 case FILE_CREATE:
                     // 创建文件
-                    fileCreateEvent(boundRecord, boundMenu, eventDTO);
+                    eventVO = fileCreateEvent(boundRecord, boundMenu, eventDTO);
+                    eventVOList.add(eventVO);
                     break;
                 case FILE_MODIFY:
                     // 修改文件
@@ -198,25 +210,16 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
                     break;
                 case FILE_DELETE:
                     // 删除文件
-                    fileDeleteEvent(boundRecord, boundMenu, eventDTO);
+                    eventVO = fileDeleteEvent(boundRecord, boundMenu, eventDTO);
+                    eventVOList.add(eventVO);
                     break;
             }
         }
-
+        return eventVOList;
     }
+
     private String calculateFileMD5(byte[] fileData) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] digest = md.digest(fileData);
-            StringBuilder sb = new StringBuilder();
-            for (byte b : digest) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            log.error("MD5算法不可用", e);
-            return null;
-        }
+        return MD5Util.calculateMD5FromBytes(fileData);
     }
     /**
      * 计算本地路径对应的云端路径
@@ -262,7 +265,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
     }
 
 
-    private void menuCreateEvent(BoundMenu boundRecord, Menu boundMenu, EventDTO eventDTO) {
+    private EventVO menuCreateEvent(BoundMenu boundRecord, Menu boundMenu, EventDTO eventDTO) {
         // 与云端绑定的本地的顶级目录
         String localBoundMenuPath = boundRecord.getLocalPath();
         // 与本地绑定的云端的顶级目录
@@ -275,9 +278,10 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
             newMenu.setOwner(boundMenu.getOwner());
             newMenu.setMenuName(menuName);
         menuService.addMenuByPath(newMenu);
+        return buildEventVO(eventDTO, calculatedRemotePath);
     }
 
-    private void menuDeleteEvent(BoundMenu boundRecord, Menu boundMenu, EventDTO eventDTO) {
+    private EventVO menuDeleteEvent(BoundMenu boundRecord, Menu boundMenu, EventDTO eventDTO) {
         // 与云端绑定的本地的顶级目录
         String localBoundMenuPath = boundRecord.getLocalPath();
         // 与本地绑定的云端的顶级目录
@@ -285,9 +289,11 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         // 计算本地的目录映射的云端路径
         String calculatedRemotePath = calculateRemotePath(localBoundMenuPath, remoteMenuPath, eventDTO.getLocalPath());
         menuService.deleteMenuByPath(calculatedRemotePath);
+
+        return buildEventVO(eventDTO, calculatedRemotePath);
     }
 
-    private void fileCreateEvent(BoundMenu boundRecord, Menu boundMenu, EventDTO eventDTO) throws IOException {
+    private EventVO fileCreateEvent(BoundMenu boundRecord, Menu boundMenu, EventDTO eventDTO) throws IOException {
         // 与云端绑定的本地的顶级目录
         String localBoundMenuPath = boundRecord.getLocalPath();
         String remoteMenuPath = boundRecord.getRemoteMenuPath();
@@ -306,14 +312,24 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         uploadFileDTO.setIdentifier(calculateFileMD5(eventDTO.getData()));
         ByteInputStream bis = new ByteInputStream(eventDTO.getData(), eventDTO.getData().length);
         fileService.uploadFile(bis, uploadFileDTO);
+        return buildEventVO(eventDTO, calculatedRemotePath);
     }
 
-    private void fileDeleteEvent(BoundMenu boundRecord, Menu boundMenu, EventDTO eventDTO) throws IOException {
+    private EventVO fileDeleteEvent(BoundMenu boundRecord, Menu boundMenu, EventDTO eventDTO) throws IOException {
         // 与云端绑定的本地的顶级目录
         String localBoundMenuPath = boundRecord.getLocalPath();
         String remoteMenuPath = boundRecord.getRemoteMenuPath();
         String calculatedRemotePath = calculateRemotePath(localBoundMenuPath, remoteMenuPath, eventDTO.getLocalPath());
         fileService.deleteByDisplayPath(calculatedRemotePath);
+        return buildEventVO(eventDTO, calculatedRemotePath);
+    }
+
+    private EventVO buildEventVO(EventDTO eventDTO, String remotePath) {
+        EventVO eventVO = new EventVO();
+        eventVO.setRemotePath(remotePath);
+        eventVO.setLocalPath(eventDTO.getLocalPath());
+        eventVO.setEventType(eventDTO.getType());
+        return eventVO;
     }
 
 }

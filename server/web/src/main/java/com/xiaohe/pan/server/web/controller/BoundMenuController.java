@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiaohe.pan.common.model.dto.EventDTO;
 import com.xiaohe.pan.common.model.dto.EventsDTO;
+import com.xiaohe.pan.common.model.vo.EventVO;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.domain.Device;
@@ -58,7 +59,7 @@ public class BoundMenuController {
     }
 
     @PostMapping("/sync")
-    public Result<String> sync(@RequestBody EventsDTO eventsDTO) throws IOException {
+    public Result<List<EventVO>> sync(@RequestBody EventsDTO eventsDTO) throws IOException {
 
         // 验证设备和密钥
         Device device = deviceService.verifySecret(
@@ -66,8 +67,8 @@ public class BoundMenuController {
                 eventsDTO.getSecret()
         );
 
-        boundMenuService.sync(eventsDTO);
+        List<EventVO> eventVOList = boundMenuService.sync(eventsDTO);
 
-        return Result.success("同步成功");
+        return Result.success("同步成功", eventVOList);
     }
 }

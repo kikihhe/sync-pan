@@ -35,7 +35,7 @@ public class HeartbeatService {
     }
 
     public void start() {
-        scheduler.scheduleAtFixedRate(this::sendHeartbeat, 1, 2, TimeUnit.MINUTES);
+        scheduler.scheduleAtFixedRate(this::sendHeartbeat, 0, 2, TimeUnit.MINUTES);
         System.out.println("heartbeatService started");
     }
 

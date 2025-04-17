@@ -141,6 +141,20 @@ public class MD5Util {
         }
     }
 
+    // 计算给定字节数组的md5
+    public static String calculateMD5FromBytes(byte[] bytes) {
+        if (bytes == null) {
+            bytes = new byte[0];
+        }
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            md.update(bytes);
+            return bytesToHex(md.digest());
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("MD5 algorithm not found", e);
+        }
+    }
+
 
     private static String bytesToHex(byte[] bytes) {
         char[] hexChars = new char[bytes.length * 2];
