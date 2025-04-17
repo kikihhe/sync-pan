@@ -12,6 +12,7 @@ import com.xiaohe.pan.server.web.mapper.SecretMapper;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.domain.Device;
 import com.xiaohe.pan.server.web.model.domain.Secret;
+import com.xiaohe.pan.server.web.model.event.BoundMenuEvent;
 import com.xiaohe.pan.server.web.model.vo.DeviceHeartbeatVO;
 import com.xiaohe.pan.server.web.service.DeviceService;
 import com.xiaohe.pan.server.web.util.CryptoUtils;
@@ -75,7 +76,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
         // 查看是否有绑定事件
         log.info("心跳开始查看事件");
-        List<BoundMenu> boundMenus = bindingEventQueue.pollEvents(device.getDeviceKey());
+        List<BoundMenuEvent> boundMenus = bindingEventQueue.pollEvents(device.getDeviceKey());
         log.info("心跳结束查看事件");
 
         DeviceHeartbeatVO vo = new DeviceHeartbeatVO();

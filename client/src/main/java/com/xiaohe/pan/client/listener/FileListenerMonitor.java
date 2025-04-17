@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-
 import com.xiaohe.pan.client.model.BoundDirectory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.*;
@@ -23,6 +22,24 @@ public class FileListenerMonitor {
     public static FileListenerMonitor getInstance() {
         // 使用单例模式保持唯一实例
         return SingletonHolder.INSTANCE;
+    }
+
+    public boolean unbindDirectory(String local, Long remoteMenuId) {
+        File dir = new File(local);
+        FileAlterationObserver observer = new FileAlterationObserver(dir, createFilter());
+        fileAlterationMonitor.removeObserver(observer);
+
+        Iterator<BoundDirectory> iterator = boundDirectories.iterator();
+        while (iterator.hasNext()) {
+            BoundDirectory bd = iterator.next();
+            // 同时匹配本地路径和远程菜单ID
+            if (bd.getDirectory().getAbsolutePath().equals(local)
+                    && Objects.equals(bd.getRemoteMenuId(), remoteMenuId)) {
+                iterator.remove();
+                return true;
+            }
+        }
+        return false;
     }
 
     private static class SingletonHolder {
@@ -80,6 +97,7 @@ public class FileListenerMonitor {
         System.out.println("fileAlterationMonitor started");
     }
     public void stop() throws Exception {
+        System.out.println("fileAlterationMonitor stop");
         fileAlterationMonitor.stop();
     }
     public void restart() throws Exception {

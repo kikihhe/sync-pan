@@ -16,6 +16,7 @@ import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.domain.Device;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
+import com.xiaohe.pan.server.web.model.event.BoundMenuEvent;
 import com.xiaohe.pan.server.web.model.vo.BoundMenuVO;
 import com.xiaohe.pan.server.web.service.BoundMenuService;
 import com.xiaohe.pan.server.web.service.FileService;
@@ -26,8 +27,6 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -92,9 +91,11 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
             log.error("绑定目录插入失败");
             throw new BusinessException("绑定失败!");
         }
-
+        BoundMenuEvent event = new BoundMenuEvent();
+        event.setBoundMenu(boundMenu);
+        event.setType(1);
         // 加入事件队列
-        bindingEventQueue.addEvent(device.getDeviceKey(), boundMenu);
+        bindingEventQueue.addEvent(device.getDeviceKey(), event);
         return boundMenu;
     }
 
@@ -106,6 +107,11 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
                         .eq(Device::getUserId, userId))) {
             throw new BusinessException("绑定记录不存在或无权操作");
         }
+        // 加入解绑事件队列
+        BoundMenuEvent event = new BoundMenuEvent();
+        event.setBoundMenu(boundMenu);
+        event.setType(2);
+        bindingEventQueue.addEvent(deviceMapper.selectById(boundMenu.getDeviceId()).getDeviceKey(), event);
         baseMapper.deleteById(bindingId);
     }
 

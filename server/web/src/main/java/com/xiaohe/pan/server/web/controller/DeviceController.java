@@ -65,7 +65,7 @@ public class DeviceController {
         String deviceKey = request.getHeader("deviceKey");
         String secret = request.getHeader("secret");
         if (!StringUtils.hasText(deviceKey) || !StringUtils.hasText(secret)) {
-            return Result.error("设备未注册或密钥错误");
+            return Result.result(505, "设备 " + deviceKey + " 未注册或密钥错误", null);
         }
         logger.info("收到来自 deviceKey=" + deviceKey + "的心跳请求");
         Device device = deviceService.verifySecret(deviceKey, secret);

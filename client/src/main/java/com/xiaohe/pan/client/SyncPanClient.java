@@ -29,8 +29,8 @@ public class SyncPanClient {
 
         // 启动服务
         monitor.start();
-        heartbeatService.start();
         fileSyncService.start();
+        heartbeatService.start();
 
         // 注册关闭钩子
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

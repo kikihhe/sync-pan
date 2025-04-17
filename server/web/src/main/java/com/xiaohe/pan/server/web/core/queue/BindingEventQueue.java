@@ -2,6 +2,7 @@ package com.xiaohe.pan.server.web.core.queue;
 
 import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
+import com.xiaohe.pan.server.web.model.event.BoundMenuEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -20,16 +21,16 @@ public class BindingEventQueue {
     /**
      * 设备Key与待处理事件的映射
      */
-    private final ConcurrentMap<String, BlockingQueue<BoundMenu>> eventQueueMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, BlockingQueue<BoundMenuEvent>> eventQueueMap = new ConcurrentHashMap<>();
 
     /**
      * 添加绑定事件到队列
      * @param deviceKey
-     * @param boundMenu
+     * @param event
      */
-    public void addEvent(String deviceKey, BoundMenu boundMenu) {
+    public void addEvent(String deviceKey, BoundMenuEvent event) {
         eventQueueMap.computeIfAbsent(deviceKey, k -> new LinkedBlockingQueue<>(10))
-                .offer(boundMenu);
+                .offer(event);
     }
 
     /**
@@ -37,13 +38,13 @@ public class BindingEventQueue {
      * @param deviceKey
      * @return
      */
-    public List<BoundMenu> pollEvents(String deviceKey) throws BusinessException {
-        BlockingQueue<BoundMenu> queue = eventQueueMap.computeIfAbsent(deviceKey, k -> {
+    public List<BoundMenuEvent> pollEvents(String deviceKey) throws BusinessException {
+        BlockingQueue<BoundMenuEvent> queue = eventQueueMap.computeIfAbsent(deviceKey, k -> {
             return new LinkedBlockingQueue<>(10);
         });
-        List<BoundMenu> events = new ArrayList<>();
+        List<BoundMenuEvent> events = new ArrayList<>();
         try {
-            BoundMenu firstEvent = queue.poll(1, TimeUnit.MINUTES);
+            BoundMenuEvent firstEvent = queue.poll(1, TimeUnit.MINUTES);
             if (firstEvent != null) {
                 events.add(firstEvent);
                 // 取出剩余所有元素
