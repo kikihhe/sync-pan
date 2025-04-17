@@ -50,6 +50,18 @@ public class MenuDetailVO {
      */
     private Long owner;
 
+    /**
+     * 文件来源
+     * 1: 云端
+     * 2: 本地
+     * 3: 已合并
+     */
+    private Integer source;
+
+    /**
+     * 是否已经绑定
+     */
+    private Boolean bound;
 
     /**
      * 该目录下所有文件的总和

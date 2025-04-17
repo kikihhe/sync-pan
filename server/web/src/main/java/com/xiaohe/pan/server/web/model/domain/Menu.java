@@ -55,4 +55,15 @@ public class Menu extends BaseDomain {
      */
     private Long owner;
 
+    /**
+     * 是否已经绑定
+     */
+    private Boolean bound;
+    /**
+     * 目录来源
+     * 1: 云端
+     * 2: 本地
+     * 3: 已合并
+     */
+    private Integer source;
 }

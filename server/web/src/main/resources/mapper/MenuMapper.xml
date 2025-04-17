@@ -10,6 +10,8 @@
         <result property="menuLevel" column="menu_level"/>
         <result property="parentId" column="parent_id"/>
         <result property="owner" column="owner"/>
+        <result property="source" column="source"/>
+        <result property="bound" column="bound"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
         <result property="deleted" column="deleted"/>

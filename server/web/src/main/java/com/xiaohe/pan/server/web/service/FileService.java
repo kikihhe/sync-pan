@@ -16,6 +16,8 @@ public interface FileService extends IService<File> {
 
     public List<File> getSubFileByRange(Long menuId, Long userId, String name, Integer orderBy, Integer desc, Integer start, Integer count);
 
+    public File getFileByMenuIdAndFilename(Long menuId, String filename);
+
     public Long countByMenuId(Long menuId, Long userId, String fileName);
 
     public Boolean uploadFile(InputStream inputStream, UploadFileDTO fileDTO) throws IOException;

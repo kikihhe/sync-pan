@@ -60,6 +60,7 @@ public class FileController {
             return Result.error("文件名重复!");
         }
         fileDTO.setFileSize(fileDTO.getMultipartFile().getSize());
+        fileDTO.setSource(1);
         fileService.uploadFile(fileDTO.getMultipartFile().getInputStream(), fileDTO);
         return Result.success("上传成功");
     }

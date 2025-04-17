@@ -13,6 +13,7 @@
         <result property="storageType" column="storage_type"/>
         <result property="owner" column="owner"/>
         <result property="realPath" column="real_path"/>
+        <result property="source" column="source"/>
         <result property="identifier" column="identifier"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>

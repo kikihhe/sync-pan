@@ -3,6 +3,7 @@ package com.xiaohe.pan.server.web.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.MenuTreeDTO;
+import com.xiaohe.pan.server.web.model.vo.ConflictVO;
 
 import java.util.List;
 
@@ -25,4 +26,6 @@ public interface MenuService extends IService<Menu> {
     MenuTreeDTO batchAddMenu(MenuTreeDTO menuTreeDTO, Long userId);
 
     Menu getByDisplayPath(String menuPath);
+
+    List<ConflictVO> checkConflict(Menu menu);
 }

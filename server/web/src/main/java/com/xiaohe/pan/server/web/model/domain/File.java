@@ -56,4 +56,12 @@ public class File extends BaseDomain{
      * 文件在网盘中展示的路径
      */
     private String displayPath;
+
+    /**
+     * 文件来源
+     * 1: 云端
+     * 2: 本地
+     * 3: 已合并
+     */
+    private Integer source;
 }

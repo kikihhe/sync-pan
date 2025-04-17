@@ -64,6 +64,14 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
     }
 
     @Override
+    public File getFileByMenuIdAndFilename(Long menuId, String filename) {
+        LambdaQueryWrapper<File> lambda = new LambdaQueryWrapper<>();
+        lambda.eq(File::getMenuId, menuId);
+        lambda.eq(File::getFileName, filename);
+        return baseMapper.selectOne(lambda);
+    }
+
+    @Override
     public Long countByMenuId(Long menuId, Long userId, String fileName) {
         LambdaQueryWrapper<File> lambda = new LambdaQueryWrapper<>();
         if (Objects.isNull(menuId)) {
@@ -102,6 +110,7 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
             file.setRealPath(storeFileContext.getRealPath());
             file.setFileSize(fileDTO.getFileSize());
             file.setIdentifier(fileDTO.getIdentifier());
+            file.setSource(fileDTO.getSource());
             Integer storageCode = StoreTypeEnum.getCodeByDesc(storageType);
             file.setStorageType(storageCode);
             int insert = baseMapper.insert(file);

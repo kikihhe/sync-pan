@@ -10,6 +10,9 @@ import com.xiaohe.pan.server.web.mapper.MenuMapper;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.MenuTreeDTO;
+import com.xiaohe.pan.server.web.model.vo.ConflictVO;
+import com.xiaohe.pan.server.web.model.vo.FileConflictVO;
+import com.xiaohe.pan.server.web.model.vo.MenuConflictVO;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.service.MenuService;
 import com.xiaohe.pan.server.web.util.ApplicationContextUtil;
@@ -137,6 +140,48 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
     }
 
     /**
+     * 检查冲突
+     */
+    @Override
+    public List<ConflictVO> checkConflict(Menu menu) {
+        List<ConflictVO> result = new ArrayList<>(2);
+
+        // 云端冲突（source=1）
+        ConflictVO cloudConflict = new ConflictVO();
+        cloudConflict.setFileConflictVOList(getFileConflicts(menu.getId(), 1));
+        cloudConflict.setMenuConflictVOList(getMenuConflicts(menu.getId(), 1));
+        result.add(cloudConflict);
+
+        // 本地冲突（source=2）
+        ConflictVO localConflict = new ConflictVO();
+        localConflict.setFileConflictVOList(getFileConflicts(menu.getId(), 2));
+        localConflict.setMenuConflictVOList(getMenuConflicts(menu.getId(), 2));
+        result.add(localConflict);
+
+        return result;
+    }
+    private List<FileConflictVO> getFileConflicts(Long menuId, Integer source) {
+        List<File> files = fileService.lambdaQuery()
+                .eq(File::getMenuId, menuId)
+                .eq(File::getSource, source)
+                .list();
+
+        return files.stream()
+                .map(f -> new FileConflictVO().setFile(f).setType(1)) // 根据实际业务设置类型
+                .collect(Collectors.toList());
+    }
+
+    private List<MenuConflictVO> getMenuConflicts(Long menuId, Integer source) {
+        List<Menu> menus = this.lambdaQuery()
+                .eq(Menu::getParentId, menuId)
+                .eq(Menu::getSource, source)
+                .list();
+
+        return menus.stream()
+                .map(m -> new MenuConflictVO().setMenu(m).setType(1)) // 根据实际业务设置类型
+                .collect(Collectors.toList());
+    }
+    /**
      * 根据树形批量创建目录
      * @param menuTreeDTO
      * @param userId
@@ -150,9 +195,10 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
         }
         // 1. 给树目录生成id，并添加 parentId
         generateIds(menuTreeDTO, menuTreeDTO.getParentId());
+        Menu parentMenu = getByUserAndMenuId(userId, menuTreeDTO.getParentId());
         // 2. 转为 Menu 插入数据库
         List<Menu> menuList = new ArrayList<>();
-        menuTreeTOMenuList(menuTreeDTO, menuList);
+        menuTreeTOMenuList(parentMenu, menuTreeDTO, menuList);
         saveBatch(menuList);
         // 3. 异步在 redis 创建目录
         for (Menu m : menuList) {
@@ -162,7 +208,7 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
         return menuTreeDTO;
     }
 
-    private void menuTreeTOMenuList(MenuTreeDTO menuTreeDTO, List<Menu> list) {
+    private void menuTreeTOMenuList(Menu parent, MenuTreeDTO menuTreeDTO, List<Menu> list) {
         Menu menu = MenuConvert.INSTANCE.menuTreeTOMenu(menuTreeDTO);
         menu.setOwner(SecurityContextUtil.getCurrentUserId());
         list.add(menu);
@@ -170,7 +216,11 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
             return;
         }
         for (MenuTreeDTO child : menuTreeDTO.getChildren()) {
-            menuTreeTOMenuList(child, list);
+            menuTreeTOMenuList(parent, child, list);
+        }
+        for (Menu m : list) {
+            m.setSource(1);
+            m.setBound(parent.getBound());
         }
     }
 
@@ -219,7 +269,8 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
                     .setParentId(currentParentId)
                     .setMenuLevel(currentLevel)
                     .setDisplayPath(part)
-                    .setOwner(userId);
+                    .setOwner(userId)
+                    .setSource(menu.getSource());
             boolean save = save(current);
             if (!save) {
                 throw new BusinessException("目录添加失败: " + part);

@@ -7,6 +7,7 @@ import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.MenuTreeDTO;
 import com.xiaohe.pan.server.web.model.dto.SubMenuListDTO;
+import com.xiaohe.pan.server.web.model.vo.ConflictVO;
 import com.xiaohe.pan.server.web.model.vo.FileAndMenuListVO;
 import com.xiaohe.pan.server.web.model.vo.MenuDetailVO;
 import com.xiaohe.pan.server.web.model.vo.MenuVO;
@@ -51,6 +52,7 @@ public class MenuController {
     @PostMapping("/addMenu")
     public Result<String> addMenu(@RequestBody Menu menu) {
         menu.setOwner(SecurityContextUtil.getCurrentUser().getId());
+        menu.setSource(1);
         Boolean nameDuplicate = menuService.checkNameDuplicate(menu.getParentId(), menu.getMenuName());
         if (nameDuplicate) {
             return Result.error("目录名重复!");
@@ -58,6 +60,7 @@ public class MenuController {
         if (!Objects.isNull(menu.getParentId())) {
             Menu parentMenu = menuService.getById(menu.getParentId());
             menu.setDisplayPath(parentMenu.getDisplayPath() + "/" + menu.getMenuName());
+            menu.setBound(parentMenu.getBound());
         } else {
             menu.setDisplayPath("/" + menu.getMenuName());
         }
@@ -108,6 +111,24 @@ public class MenuController {
         Long userId = SecurityContextUtil.getCurrentUser().getId();
         MenuTreeDTO list = menuService.batchAddMenu(menuTreeDTO, userId);
         return Result.success(list);
+    }
+
+    @PostMapping("/checkConflict")
+    public Result<List<ConflictVO>> checkConflict(@RequestParam Long menuId) {
+        Long userId = SecurityContextUtil.getCurrentUser().getId();
+        Menu menu = menuService.getById(menuId);
+        if (Objects.isNull(menu)) {
+            return Result.error("目录不存在");
+        }
+        if (!Objects.equals(userId, menu.getOwner())) {
+            return Result.error("权限不足");
+        }
+        // 1. 先检查当前目录是否已经绑定
+        if (!menu.getBound()) {
+            return Result.error("目录未绑定");
+        }
+        List<ConflictVO> conflictList =  menuService.checkConflict(menu);
+        return Result.success(conflictList);
     }
     /**
      * 获取指定目录的子目录
