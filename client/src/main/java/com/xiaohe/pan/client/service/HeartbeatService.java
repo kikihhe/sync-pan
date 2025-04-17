@@ -64,7 +64,10 @@ public class HeartbeatService {
                 System.exit(1);
             }
             DeviceHeartbeatVO vo = result.getData();
-            processEvents(vo.getPendingBindings());
+            System.out.println("心跳成功!");
+            if (vo.getSyncCommand() == 1) {
+                processEvents(vo.getPendingBindings());
+            }
         } catch (Exception e) {
             System.err.println("心跳发送失败: " + e.getMessage());
         }
