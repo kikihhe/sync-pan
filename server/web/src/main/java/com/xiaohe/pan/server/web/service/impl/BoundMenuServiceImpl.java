@@ -118,8 +118,8 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
     @Override
     public List<BoundMenuVO> getDeviceBindings(Long userId, Long deviceId) {
         if (!deviceMapper.exists(new LambdaQueryWrapper<Device>()
-                        .eq(Device::getId, deviceId)
-                        .eq(Device::getUserId, userId))) {
+                .eq(Device::getId, deviceId)
+                .eq(Device::getUserId, userId))) {
             throw new BusinessException("设备不存在或无权访问");
         }
 
@@ -142,19 +142,27 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         return boundMenuVOList;
     }
 
-    @Override
-    public List<EventVO> sync(EventsDTO eventsDTO) throws IOException {
+    private List<EventVO> sync(Long remoteMenuId, List<EventDTO> eventDTOList) throws IOException {
         // 处理每个事件
         List<EventDTO> menuEvents = new ArrayList<>();
         List<EventDTO> fileEvents = new ArrayList<>();
         // 获取绑定的顶级目录
-        Menu boundMenu = menuService.getById(eventsDTO.getEvents().get(0).getRemoteMenuId());
+        Menu boundMenu = menuService.getById(remoteMenuId);
+        if (Objects.isNull(boundMenu)) {
+            throw new BusinessException("目录不存在");
+        }
         // 获取绑定记录
         LambdaQueryWrapper<BoundMenu> lambda = new LambdaQueryWrapper<>();
         lambda.eq(BoundMenu::getRemoteMenuId, boundMenu.getId());
         BoundMenu boundRecord = baseMapper.selectOne(lambda);
+        if (Objects.isNull(boundRecord)) {
+            throw new BusinessException("绑定记录不存在");
+        }
+        if (boundRecord.getStatus() == 2) {
+            throw new BusinessException(boundRecord.getLocalPath() + " -> " + boundRecord.getRemoteMenuPath() + " 的同步已暂停");
+        }
         // 将事件分类为目录事件和文件事件
-        for (EventDTO eventDTO : eventsDTO.getEvents()) {
+        for (EventDTO eventDTO : eventDTOList) {
             switch (eventDTO.getType()) {
                 case DIRECTORY_CREATE:
                 case DIRECTORY_MODIFY:
@@ -170,14 +178,43 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         }
         menuEvents.sort((o1, o2) -> (int) (o1.getTimestamp() - o2.getTimestamp()));
         fileEvents.sort((o1, o2) -> (int) (o1.getTimestamp() - o2.getTimestamp()));
-
-
         // 修改最后同步时间
         boundRecord.setLastSyncedAt(LocalDateTime.now());
         baseMapper.updateById(boundRecord);
         // 返回结果
-        List<EventVO> eventVO = handleEvents(menuEvents, fileEvents, boundRecord, boundMenu);
-        return eventVO;
+        return handleEvents(menuEvents, fileEvents, boundRecord, boundMenu);
+    }
+
+    @Override
+    public List<EventVO> sync(List<EventDTO> allEventDTOList) throws IOException {
+        Map<Long, List<EventDTO>> allBoundMenu = allEventDTOList.stream().collect(Collectors.groupingBy(EventDTO::getRemoteMenuId));
+        List<EventVO> eventVOList = new ArrayList<>();
+        allBoundMenu.forEach((remoteMenuId, eventDTOList) -> {
+            try {
+                List<EventVO> subEventVOList = sync(remoteMenuId, eventDTOList);
+                eventVOList.addAll(subEventVOList);
+            } catch (IOException e) {
+                log.error(e.getMessage());
+            }
+        });
+        return eventVOList;
+    }
+
+    @Override
+    public void stopBinding(Long userId, Long boundMenuId) {
+        BoundMenu boundMenu = getById(boundMenuId);
+        if (Objects.isNull(boundMenu)) {
+            throw new BusinessException("绑定目录不存在");
+        }
+        Device device = deviceMapper.selectById(boundMenu.getDeviceId());
+        if (Objects.isNull(device)) {
+            throw new BusinessException("设备不存在");
+        }
+        if (!device.getUserId().equals(userId)) {
+            throw new BusinessException("无权操作");
+        }
+        boundMenu.setStatus(2);
+        updateById(boundMenu);
     }
 
     public List<EventVO> handleEvents(List<EventDTO> menuEvents, List<EventDTO> fileEvents, BoundMenu boundRecord, Menu boundMenu) throws IOException {
@@ -227,12 +264,13 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
     private String calculateFileMD5(byte[] fileData) {
         return MD5Util.calculateMD5FromBytes(fileData);
     }
+
     /**
      * 计算本地路径对应的云端路径
      *
      * @param localBoundMenuPath 本地绑定的顶级目录，例如 D:/test/test1/test2
-     * @param remoteMenuPath 远端绑定的顶级目录，例如 mac\a\b
-     * @param localPath 本地路径，例如 D:/test/test1/test2/testK/testk
+     * @param remoteMenuPath     远端绑定的顶级目录，例如 mac\a\b
+     * @param localPath          本地路径，例如 D:/test/test1/test2/testK/testk
      * @return 需要在云端创建的路径，例如 mac\a\b\testK\testk
      */
     public String calculateRemotePath(String localBoundMenuPath, String remoteMenuPath, String localPath) {
@@ -280,9 +318,9 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         String calculatedRemotePath = calculateRemotePath(localBoundMenuPath, remoteMenuPath, eventDTO.getLocalPath());
         String menuName = calculatedRemotePath.substring(calculatedRemotePath.lastIndexOf("/") + 1);
         Menu newMenu = new Menu();
-            newMenu.setDisplayPath(calculatedRemotePath);
-            newMenu.setOwner(boundMenu.getOwner());
-            newMenu.setMenuName(menuName);
+        newMenu.setDisplayPath(calculatedRemotePath);
+        newMenu.setOwner(boundMenu.getOwner());
+        newMenu.setMenuName(menuName);
         menuService.addMenuByPath(newMenu);
         return buildEventVO(eventDTO, calculatedRemotePath);
     }

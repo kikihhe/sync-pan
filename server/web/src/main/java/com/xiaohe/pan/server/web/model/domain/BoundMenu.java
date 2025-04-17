@@ -21,6 +21,7 @@ public class BoundMenu extends BaseDomain {
     private String localPath;
     private Long remoteMenuId;
     private String remoteMenuPath;
+    // 0-死亡，1-健康，2-暂停
     private Integer status;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")

@@ -45,10 +45,22 @@ public class BoundMenuController {
         return Result.success(boundMenuService.createBinding(userId, request));
     }
 
+    /**
+     * 不再同步
+     * @param bindingId
+     * @return
+     */
     @DeleteMapping("/{bindingId}")
-    public Result<Void> removeBinding(@PathVariable Long bindingId) {
+    public Result<String> removeBinding(@PathVariable Long bindingId) {
         Long userId = SecurityContextUtil.getCurrentUserId();
         boundMenuService.removeBinding(userId, bindingId);
+        return Result.success("删除成功");
+    }
+
+    @PostMapping("/stopBinding/{bindingId}")
+    public Result<String> stopBinding(@PathVariable Long bindingId) {
+        Long userId = SecurityContextUtil.getCurrentUserId();
+        boundMenuService.stopBinding(userId, bindingId);
         return Result.success("删除成功");
     }
 
@@ -67,7 +79,7 @@ public class BoundMenuController {
                 eventsDTO.getSecret()
         );
 
-        List<EventVO> eventVOList = boundMenuService.sync(eventsDTO);
+        List<EventVO> eventVOList = boundMenuService.sync(eventsDTO.getEvents());
 
         return Result.success("同步成功", eventVOList);
     }
