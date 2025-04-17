@@ -34,7 +34,7 @@ public class FileSyncService {
 
 
     public void start() {
-        scheduler.scheduleAtFixedRate(this::processEvents, 5, 100, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::processEvents, 5, 60, TimeUnit.SECONDS);
         System.out.println("fileSyncService started");
     }
 
