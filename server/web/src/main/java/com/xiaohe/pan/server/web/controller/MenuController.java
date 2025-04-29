@@ -113,23 +113,7 @@ public class MenuController {
         return Result.success(list);
     }
 
-    @PostMapping("/checkConflict")
-    public Result<List<ConflictVO>> checkConflict(@RequestParam Long menuId) {
-        Long userId = SecurityContextUtil.getCurrentUser().getId();
-        Menu menu = menuService.getById(menuId);
-        if (Objects.isNull(menu)) {
-            return Result.error("目录不存在");
-        }
-        if (!Objects.equals(userId, menu.getOwner())) {
-            return Result.error("权限不足");
-        }
-        // 1. 先检查当前目录是否已经绑定
-        if (!menu.getBound()) {
-            return Result.error("目录未绑定");
-        }
-        List<ConflictVO> conflictList =  menuService.checkConflict(menu);
-        return Result.success(conflictList);
-    }
+
     /**
      * 获取指定目录的子目录
      * 若 menuId 为空，则获取指定用户的所有一级目录

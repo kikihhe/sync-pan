@@ -8,23 +8,21 @@ import com.xiaohe.pan.common.model.vo.EventVO;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.domain.Device;
+import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.vo.BoundMenuVO;
+import com.xiaohe.pan.server.web.model.vo.ConflictVO;
 import com.xiaohe.pan.server.web.service.BoundMenuService;
 import com.xiaohe.pan.server.web.service.DeviceService;
+import com.xiaohe.pan.server.web.service.MenuService;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
-
-import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
+
 
 @RestController
 @RequestMapping("/bound")
@@ -37,6 +35,9 @@ public class BoundMenuController {
 
     @Resource
     private DeviceService deviceService;
+
+    @Resource
+    private MenuService menuService;
 
 
     @PostMapping("/createBinding")
@@ -83,4 +84,23 @@ public class BoundMenuController {
 
         return Result.success("同步成功", eventVOList);
     }
+
+    @PostMapping("/checkConflict")
+    public Result<List<ConflictVO>> checkConflict(@RequestParam Long menuId) {
+        Long userId = SecurityContextUtil.getCurrentUser().getId();
+        Menu menu = menuService.getById(menuId);
+        if (Objects.isNull(menu)) {
+            return Result.error("目录不存在");
+        }
+        if (!Objects.equals(userId, menu.getOwner())) {
+            return Result.error("权限不足");
+        }
+        // 1. 先检查当前目录是否已经绑定
+        if (!menu.getBound()) {
+            return Result.error("目录未绑定");
+        }
+        List<ConflictVO> conflictList =  menuService.checkConflict(menu);
+        return Result.success(conflictList);
+    }
+
 }
