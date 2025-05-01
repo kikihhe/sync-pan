@@ -2,6 +2,7 @@ package com.xiaohe.pan.client.service;
 
 import com.alibaba.fastjson.JSON;
 
+import com.alibaba.fastjson.TypeReference;
 import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
 import com.xiaohe.pan.client.config.ClientConfig;
 import com.xiaohe.pan.client.event.EventContainer;
@@ -9,16 +10,18 @@ import com.xiaohe.pan.client.http.HttpClientManager;
 import com.xiaohe.pan.client.listener.FileListenerMonitor;
 import com.xiaohe.pan.client.model.BoundDirectory;
 import com.xiaohe.pan.client.model.Event;
+import com.xiaohe.pan.client.model.vo.DeviceHeartbeatVO;
 import com.xiaohe.pan.common.model.dto.EventDTO;
 import com.xiaohe.pan.common.model.dto.EventsDTO;
 import com.xiaohe.pan.common.model.dto.MergeEvent;
 import com.xiaohe.pan.common.util.FileUtils;
+import com.xiaohe.pan.common.util.Result;
+import org.apache.commons.collections4.CollectionUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -123,19 +126,41 @@ public class FileSyncService {
 
     private void mergedEvents() {
         // 从服务端获取需要处理的合并事件
-        List<MergeEvent> mergeEventList = fetchMergeEventsFromServer();
-        // 把 localBoundMenuPath 中的 \\ 替换为 /
-        mergeEventList.forEach(mergeEvent -> mergeEvent.setLocalBoundMenuPath(normalizePathSeparator(mergeEvent.getLocalBoundMenuPath())));
-        // 处理目录事件（按路径深度排序）
-        processEventsByType(mergeEventList, 1);
-        // 处理文件事件（按路径深度排序）
-        processEventsByType(mergeEventList, 2);
+        try {
+            List<MergeEvent> mergeEventList = fetchMergeEventsFromServer();
+            if (CollectionUtils.isEmpty(mergeEventList)) {
+                return;
+            }
+            // 把 localBoundMenuPath 中的 \\ 替换为 /
+            mergeEventList.forEach(mergeEvent -> mergeEvent.setLocalBoundMenuPath(normalizePathSeparator(mergeEvent.getLocalBoundMenuPath())));
+            // 处理目录事件（按路径深度排序）
+            processEventsByType(mergeEventList, 1);
+            // 处理文件事件（按路径深度排序）
+            processEventsByType(mergeEventList, 2);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     // 从服务端获取合并事件
-    private List<MergeEvent> fetchMergeEventsFromServer() {
-        // 暂时返回空列表
-        return new ArrayList<>();
+    private List<MergeEvent> fetchMergeEventsFromServer() throws IOException {
+        Map<String, String> map = new HashMap<>();
+        map.put("deviceKey", ClientConfig.getDeviceKey());
+        map.put("secret", ClientConfig.getSecret());
+        String response = httpClient.post("/bound/getMergedEvents", map, "");
+        Result<List<MergeEvent>> result = JSON.parseObject(
+                response,
+                new TypeReference<Result<List<MergeEvent>>>(){}
+        );
+        if (result == null) {
+            System.out.println("获取合并事件失败,result is null");
+            return new ArrayList<>();
+        }
+        if (result.getCode() != 200) {
+            System.out.println("获取合并事件失败, result: " + result);
+            return new ArrayList<>();
+        }
+        return result.getData();
     }
     private void processEventsByType(List<MergeEvent> events, int fileType) {
         events.stream()
@@ -186,76 +211,7 @@ public class FileSyncService {
             e.printStackTrace();
         }
     }
-//    private void mergedEvents() {
-//        // 假设已经通过请求拿到了所有合并事件
-//        List<MergeEvent> mergeEventList = new ArrayList<>();
-//        // 先处理目录再处理文件
-//        List<MergeEvent> menuMergeEventList = mergeEventList.stream().filter(mergeEvent -> mergeEvent.getFileType() == 1).sorted((e1, e2) -> {
-//            String[] path1 = e1.getLocalBoundMenuPath().split("/");
-//            String[] path2 = e2.getLocalBoundMenuPath().split("/");
-//            return path1.length - path2.length;
-//        }).collect(Collectors.toList());
-//        List<MergeEvent> fileMergeEventList = mergeEventList.stream().filter(mergeEvent -> mergeEvent.getFileType() == 2).sorted((e1, e2) -> {
-//            String[] path1 = e1.getLocalBoundMenuPath().split("/");
-//            String[] path2 = e2.getLocalBoundMenuPath().split("/");
-//            return path1.length - path2.length;
-//        }).collect(Collectors.toList());
-//        // 遍历每个合并事件
-//        // 1. 目录
-//        for (MergeEvent mergeEvent : menuMergeEventList) {
-//            // 处理每个合并事件
-//            // 这里可以根据需要进行进一步的处理，比如更新数据库、发送通知等
-//            // 1. 要处理的是哪个文件
-//            // 本地的绑定目录
-//            String localBoundPath = mergeEvent.getLocalBoundMenuPath();
-//            // 云端的绑定目录
-//            String remoteBoundPath = mergeEvent.getRemoteMenuPath();
-//            // 文件/目录名
-//            String name = mergeEvent.getFilename();
-//            // 获取要处理的本地目录名称
-//            String targetFileName = calculateLocalPath(localBoundPath, remoteBoundPath, mergeEvent.getRemoteMenuPath(), name);
-//            // 事件类型，增/删
-//            Integer type = mergeEvent.getType();
-//
-//            File file = new File(targetFileName);
-//
-//            if (type == 1) {
-//                // 增加事件，创建目录
-//                file.delete();
-//            } else {
-//                // 删除事件，删除目录
-//                file.delete();
-//            }
-//        }
-//
-//        for (MergeEvent mergeEvent : fileMergeEventList) {
-//            String localBoundPath = mergeEvent.getLocalBoundMenuPath();
-//            String remoteBoundPath = mergeEvent.getRemoteMenuPath();
-//            String name = mergeEvent.getFilename();
-//            String targetFileName = calculateLocalPath(localBoundPath, remoteBoundPath, mergeEvent.getRemoteMenuPath(), name);
-//            Integer type = mergeEvent.getType();
-//            File file = new File(targetFileName);
-//            if (!file.isFile()) continue;
-//            if (type == 1) {
-//                // 文件增加事件
-//                if (file.exists()) {
-//                    file.delete();
-//                }
-//                ByteInputStream byteInputStream = new ByteInputStream(mergeEvent.getData(), mergeEvent.getData().length);
-//                try {
-//                    FileUtils.writeStream2File(byteInputStream, file, (long) mergeEvent.getData().length);
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//            } else {
-//                // 文件删除事件
-//                if (file.exists()) {
-//                    file.delete();
-//                }
-//            }
-//        }
-//
-//    }
+
 
     private String calculateLocalPath(String localBoundMenuPath, String remoteBoundMenuPath, String remoteMenuPath, String filename) {
         // 标准化路径分隔符，确保在不同操作系统下都能正确处理

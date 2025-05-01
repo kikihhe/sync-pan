@@ -4,8 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiaohe.pan.common.model.dto.EventDTO;
 import com.xiaohe.pan.common.model.dto.EventsDTO;
+import com.xiaohe.pan.common.model.dto.MergeEvent;
 import com.xiaohe.pan.common.model.vo.EventVO;
 import com.xiaohe.pan.common.util.Result;
+import com.xiaohe.pan.server.web.core.queue.MergeEventQueue;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.domain.Device;
 import com.xiaohe.pan.server.web.model.domain.Menu;
@@ -19,11 +21,13 @@ import com.xiaohe.pan.server.web.service.MenuService;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.util.*;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 
 
 @RestController
@@ -40,6 +44,9 @@ public class BoundMenuController {
 
     @Resource
     private MenuService menuService;
+
+    @Resource
+    private MergeEventQueue mergeEventQueue;
 
 
     @PostMapping("/createBinding")
@@ -129,6 +136,25 @@ public class BoundMenuController {
     public Result<String> resolveConflict(@RequestBody ResolveConflictDTO dto) throws IOException {
         boundMenuService.resolveConflict(dto);
         return Result.success("冲突解决成功");
+    }
+
+    /**
+     * 用户解决冲突后，设备调用这个接口获取用户合并事件
+     * @param request
+     * @return
+     * @throws InterruptedException
+     */
+    @PostMapping("/getMergedEvents")
+    public Result<List<MergeEvent>> getMergedEvents(HttpServletRequest request) throws InterruptedException {
+        String deviceKey = request.getHeader("deviceKey");
+        String secret = request.getHeader("secret");
+        if (!StringUtils.hasText(deviceKey) || !StringUtils.hasText(secret)) {
+            return Result.result(505, "设备 " + deviceKey + " 未注册或密钥错误", null);
+        }
+        logger.info("收到来自 deviceKey=" + deviceKey + "的心跳请求");
+        deviceService.verifySecret(deviceKey, secret);
+        List<MergeEvent> mergeEvents = mergeEventQueue.pollAllEvents();
+        return Result.success(mergeEvents);
     }
 
 }

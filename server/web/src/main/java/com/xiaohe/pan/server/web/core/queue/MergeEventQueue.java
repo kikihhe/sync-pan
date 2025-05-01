@@ -4,11 +4,13 @@ import com.xiaohe.pan.common.model.dto.MergeEvent;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class MergeEventQueue {
-    private ConcurrentLinkedQueue<MergeEvent> mergeEventQueue = new ConcurrentLinkedQueue<>();
+    private BlockingQueue<MergeEvent> mergeEventQueue = new LinkedBlockingQueue<>();
 
 
     public void addEvent(MergeEvent event) {
@@ -21,9 +23,14 @@ public class MergeEventQueue {
     public boolean isEmpty() {
         return mergeEventQueue.isEmpty();
     }
-    public List<MergeEvent> pollAllEvents() {
-        List<MergeEvent> events = new ArrayList<>(mergeEventQueue);
-        mergeEventQueue.clear();
-        return events;
+    public List<MergeEvent> pollAllEvents() throws InterruptedException {
+        MergeEvent poll = mergeEventQueue.poll(1, TimeUnit.MINUTES);
+        if (poll != null) {
+            List<MergeEvent> events = new ArrayList<>(mergeEventQueue);
+            events.add(poll);
+            mergeEventQueue.clear();
+            return events;
+        }
+        return null;
     }
 }
