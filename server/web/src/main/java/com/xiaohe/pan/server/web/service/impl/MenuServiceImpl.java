@@ -20,6 +20,7 @@ import com.xiaohe.pan.server.web.util.MenuUtil;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import com.xiaohe.pan.server.web.util.Snowflake;
 import org.springframework.aop.framework.AopContext;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -172,13 +173,24 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
     }
 
     private List<MenuConflictVO> getMenuConflicts(Long menuId, Integer source) {
+        if (menuId == null) {
+            return Collections.emptyList();
+        }
         List<Menu> menus = this.lambdaQuery()
                 .eq(Menu::getParentId, menuId)
                 .eq(Menu::getSource, source)
                 .list();
-
+        if (CollectionUtils.isEmpty(menus)) {
+            return Collections.emptyList();
+        }
         return menus.stream()
-                .map(m -> new MenuConflictVO().setMenu(m).setType(1)) // 根据实际业务设置类型
+                .map(m -> {
+                    return new MenuConflictVO()
+                            .setMenu(m)
+                            .setSubmenuList(getMenuConflicts(m.getId(), m.getSource()))
+                            .setSubFileList(getFileConflicts(m.getId(), m.getSource()))
+                            .setType(1);
+                }) // 根据实际业务设置类型
                 .collect(Collectors.toList());
     }
     /**
@@ -199,6 +211,10 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
         // 2. 转为 Menu 插入数据库
         List<Menu> menuList = new ArrayList<>();
         menuTreeTOMenuList(parentMenu, menuTreeDTO, menuList);
+        for (Menu m : menuList) {
+            m.setSource(1);
+            m.setBound(parentMenu.getBound());
+        }
         saveBatch(menuList);
         // 3. 异步在 redis 创建目录
         for (Menu m : menuList) {
@@ -209,18 +225,16 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
     }
 
     private void menuTreeTOMenuList(Menu parent, MenuTreeDTO menuTreeDTO, List<Menu> list) {
-        Menu menu = MenuConvert.INSTANCE.menuTreeTOMenu(menuTreeDTO);
+        Menu menu = new Menu();
+        BeanUtils.copyProperties(menuTreeDTO, menu);
         menu.setOwner(SecurityContextUtil.getCurrentUserId());
+        menu.setDisplayPath(parent.getDisplayPath() + "/" + menu.getMenuName());
         list.add(menu);
         if (CollectionUtils.isEmpty(menuTreeDTO.getChildren())) {
             return;
         }
         for (MenuTreeDTO child : menuTreeDTO.getChildren()) {
-            menuTreeTOMenuList(parent, child, list);
-        }
-        for (Menu m : list) {
-            m.setSource(1);
-            m.setBound(parent.getBound());
+            menuTreeTOMenuList(menu, child, list);
         }
     }
 
@@ -280,6 +294,22 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
             rollingPath = part;
         }
         return current;
+    }
+
+    @Override
+    public List<Menu> getAllSubMenu(Long menuId, List<Menu> result) {
+        if (menuId == null) {
+            return Collections.emptyList();
+        }
+        // 查出当前目录的所有子目录
+        List<Menu> subMenuList = lambdaQuery().eq(Menu::getParentId, menuId).list();
+        if (!CollectionUtils.isEmpty(subMenuList)) {
+            result.addAll(subMenuList);
+            for (Menu subMenu : subMenuList) {
+                getAllSubMenu(subMenu.getId(), result);
+            }
+        }
+        return null;
     }
 
     @Override

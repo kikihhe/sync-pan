@@ -1,12 +1,16 @@
 package com.xiaohe.pan.server.web.controller;
 
 import com.xiaohe.pan.common.exceptions.BusinessException;
+import com.xiaohe.pan.common.model.dto.MergeEvent;
 import com.xiaohe.pan.common.util.PageQuery;
 import com.xiaohe.pan.common.util.PageVO;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.constants.FileConstants;
+import com.xiaohe.pan.server.web.core.queue.MergeEventQueue;
+import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.FileChunk;
+import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.DeleteFileDTO;
 import com.xiaohe.pan.server.web.model.dto.DeletedFileQueryDTO;
 import com.xiaohe.pan.server.web.model.dto.MergeChunkFileDTO;
@@ -15,8 +19,10 @@ import com.xiaohe.pan.server.web.model.dto.UploadChunkFileDTO;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import com.xiaohe.pan.server.web.model.dto.RecycleFileDTO;
 import com.xiaohe.pan.server.web.model.vo.FileChunkVO;
+import com.xiaohe.pan.server.web.service.BoundMenuService;
 import com.xiaohe.pan.server.web.service.FileChunkService;
 import com.xiaohe.pan.server.web.service.FileService;
+import com.xiaohe.pan.server.web.service.MenuService;
 import com.xiaohe.pan.server.web.util.HttpUtil;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -45,6 +51,13 @@ public class FileController {
 
     @Autowired
     private FileChunkService fileChunkService;
+
+    @Autowired
+    private MergeEventQueue mergeEventQueue;
+    @Autowired
+    private MenuService menuService;
+    @Autowired
+    private BoundMenuService boundMenuService;
 
     /**
      * 上传文件
@@ -83,9 +96,23 @@ public class FileController {
         if (!Objects.equals(byId.getOwner(), file.getOwner())) {
             return Result.error("权限不足");
         }
+        Menu menu = menuService.getById(file.getMenuId());
         File rawFile = new File();
         BeanUtils.copyProperties(file, rawFile);
         fileService.updateById(rawFile);
+        // 放入事件队列
+        if (menu.getBound()) {
+            BoundMenu boundMenu = boundMenuService.getBoundMenuByMenuId(menu.getId());
+            MergeEvent mergeEvent = new MergeEvent();
+            mergeEvent.setOldFileName(byId.getFileName());
+            mergeEvent.setFilename(file.getFileName());
+            mergeEvent.setRemoteMenuPath(menu.getDisplayPath());
+            mergeEvent.setRemoteBoundMenuPath(boundMenu.getRemoteMenuPath());
+            mergeEvent.setType(3);
+            mergeEvent.setFileType(2);
+            mergeEvent.setLocalBoundMenuPath(boundMenu.getLocalPath());
+            mergeEventQueue.addEvent(mergeEvent);
+        }
         return Result.success("修改成功");
     }
 

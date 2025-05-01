@@ -1,12 +1,15 @@
 package com.xiaohe.pan.client.event;
 
+import cn.hutool.core.collection.ConcurrentHashSet;
 import com.xiaohe.pan.common.enums.EventType;
 import com.xiaohe.pan.client.model.Event;
+import com.xiaohe.pan.common.model.dto.MergeEvent;
 
 import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.ArrayList;
@@ -14,7 +17,21 @@ import java.util.List;
 
 public class EventContainer {
 
+    /**
+     * 存储本地文件/目录的变更事件
+     */
     private final ConcurrentLinkedQueue<Event> eventQueue;
+
+    /**
+     * 服务端发生的冲突，客户端拉取并处理（还未处理）
+     */
+    private final ConcurrentHashSet<MergeEvent> mergeEvents;
+
+    /**
+     * 服务端发生的冲突
+     * 客户端拉取并处理完
+     */
+    private final ConcurrentHashSet<String> mergedSet;
 
     private final ReentrantLock lock;
 
@@ -22,6 +39,8 @@ public class EventContainer {
 
     private EventContainer() {
         this.eventQueue = new ConcurrentLinkedQueue<>();
+        this.mergeEvents = new ConcurrentHashSet<>();
+        this.mergedSet = new ConcurrentHashSet<>();
         this.lock = new ReentrantLock();
     }
 
@@ -125,5 +144,20 @@ public class EventContainer {
 
         // 多次修改或创建后修改，返回最后一个事件
         return lastEvent;
+    }
+
+    public void addMergedEvent(String path) {
+        mergedSet.add(path);
+    }
+
+    public void removeMergedEvent(String path) {
+        mergedSet.remove(path);
+    }
+
+    public void cleanMergedEvents() {
+        mergedSet.clear();
+    }
+    public boolean isMerged(String path) {
+        return mergedSet.contains(path);
     }
 }

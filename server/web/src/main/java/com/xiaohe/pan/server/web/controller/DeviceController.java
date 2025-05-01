@@ -15,6 +15,7 @@ import com.xiaohe.pan.server.web.service.SecretService;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -52,7 +53,8 @@ public class DeviceController {
         List<Secret> secretList = secretService.listByIds(secretIdList);
         Map<Long, String> secretMap = secretList.stream().collect(Collectors.toMap(Secret::getId, Secret::getKey));
         List<DeviceVO> deviceVOList = list.stream().map(device -> {
-            DeviceVO deviceVO = DeviceConvert.INSTANCE.deviceConvertTODeviceVO(device);
+            DeviceVO deviceVO = new DeviceVO();
+            BeanUtils.copyProperties(device, deviceVO);
             String secretKey = secretMap.get(device.getSecretId());
             deviceVO.setSecretKey(secretKey);
             return deviceVO;

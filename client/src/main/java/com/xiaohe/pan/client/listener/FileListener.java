@@ -28,16 +28,25 @@ public class FileListener extends FileAlterationListenerAdaptor {
 
     @Override
     public void onDirectoryCreate(File directory) {
+        if (eventContainer.isMerged(directory.getAbsolutePath())) {
+            return;
+        }
         handleDirectoryCreate(directory.toPath());
     }
 
     @Override
     public void onDirectoryChange(File directory) {
+        if (eventContainer.isMerged(directory.getAbsolutePath())) {
+            return;
+        }
         handleDirectoryChange(directory.toPath());
     }
 
     @Override
     public void onDirectoryDelete(File directory) {
+        if (eventContainer.isMerged(directory.getAbsolutePath())) {
+            return;
+        }
         handleDirectoryDeleteEvent(directory.toPath());
     }
 
@@ -45,16 +54,25 @@ public class FileListener extends FileAlterationListenerAdaptor {
 
     @Override
     public void onFileCreate(File file) {
+        if (eventContainer.isMerged(file.getAbsolutePath())) {
+            return;
+        }
         handleFileCreate(file.toPath());
     }
 
     @Override
     public void onFileChange(File file) {
+        if (eventContainer.isMerged(file.getAbsolutePath())) {
+            return;
+        }
         handlePotentialFileModification(file.toPath());
     }
 
     @Override
     public void onFileDelete(File file) {
+        if (eventContainer.isMerged(file.getAbsolutePath())) {
+            return;
+        }
         handleFileDeleteEvent(file.toPath());
     }
 
@@ -328,7 +346,7 @@ public class FileListener extends FileAlterationListenerAdaptor {
     }
 
     /**
-     * 检查和处理文件修改的核心逻辑。这里假设文件是存在的哦
+     * 检查和处理文件修改的核心逻辑。这里假设文件是存在的
      */
     private void handlePotentialFileModification(Path filePath, String relativePath, MD5Storage storage) {
         storage.lock.writeLock().lock(); // 需要写锁来更新MD5

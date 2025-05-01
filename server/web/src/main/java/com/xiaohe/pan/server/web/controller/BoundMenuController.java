@@ -9,8 +9,10 @@ import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.domain.Device;
 import com.xiaohe.pan.server.web.model.domain.Menu;
+import com.xiaohe.pan.server.web.model.dto.ResolveConflictDTO;
 import com.xiaohe.pan.server.web.model.vo.BoundMenuVO;
 import com.xiaohe.pan.server.web.model.vo.ConflictVO;
+import com.xiaohe.pan.server.web.model.vo.ResolvedConflictVO;
 import com.xiaohe.pan.server.web.service.BoundMenuService;
 import com.xiaohe.pan.server.web.service.DeviceService;
 import com.xiaohe.pan.server.web.service.MenuService;
@@ -84,7 +86,23 @@ public class BoundMenuController {
 
         return Result.success("同步成功", eventVOList);
     }
-
+    @PostMapping("/getResolvedConflict")
+    public Result<ResolvedConflictVO> getResolvedConflict(@RequestParam Long menuId) throws IOException {
+        Long userId = SecurityContextUtil.getCurrentUser().getId();
+        Menu menu = menuService.getById(menuId);
+        if (Objects.isNull(menu)) {
+            return Result.error("目录不存在");
+        }
+        if (!Objects.equals(userId, menu.getOwner())) {
+            return Result.error("权限不足");
+        }
+        // 1. 先检查当前目录是否已经绑定
+        if (!menu.getBound()) {
+            return Result.error("目录未绑定");
+        }
+        ResolvedConflictVO vo = boundMenuService.getResolvedConflict(menu);
+        return Result.success(vo);
+    }
     @PostMapping("/checkConflict")
     public Result<List<ConflictVO>> checkConflict(@RequestParam Long menuId) {
         Long userId = SecurityContextUtil.getCurrentUser().getId();
@@ -101,6 +119,16 @@ public class BoundMenuController {
         }
         List<ConflictVO> conflictList =  menuService.checkConflict(menu);
         return Result.success(conflictList);
+    }
+
+    /**
+     * 用户在网站解决冲突
+     * @return
+     */
+    @PostMapping("/resolveConflict")
+    public Result<String> resolveConflict(@RequestBody ResolveConflictDTO dto) throws IOException {
+        boundMenuService.resolveConflict(dto);
+        return Result.success("冲突解决成功");
     }
 
 }

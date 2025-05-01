@@ -275,6 +275,29 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         return baseMapper.selectFilesDeletedBefore30Days();
     }
 
+    @Override
+    public List<File> getAllSubFile(Long menuId, List<File> result) {
+        if (Objects.isNull(menuId)) {
+            return null;
+        }
+        List<File> subFileList = lambdaQuery().eq(File::getMenuId, menuId).list();
+        if (subFileList.isEmpty()) {
+            return null;
+        }
+        result.addAll(subFileList);
+
+        for (File subFile : subFileList) {
+            getAllSubFile(subFile.getId(), result);
+        }
+        return null;
+    }
+    @Override
+    public List<File> getSubFileByMenuList(List<Long> menuIdList) {
+        LambdaQueryWrapper<File> lambda = new LambdaQueryWrapper<>();
+        lambda.in(File::getMenuId, menuIdList);
+        return baseMapper.selectList(lambda);
+    }
+
     public File getByDisplayPath(String displayPath) {
         LambdaQueryWrapper<File> lambda = new LambdaQueryWrapper<>();
         lambda.eq(File::getDisplayPath, displayPath);

@@ -13,6 +13,8 @@ public interface MenuService extends IService<Menu> {
 
     public Boolean deleteMenuByPath(String displayPath);
 
+    public List<Menu> getAllSubMenu(Long menuId, List<Menu> result);
+
     public List<Menu> getSubMenuByRange(Long menuId, Long userId, String name, Integer orderBy, Integer desc, Integer start, Integer count);
 
     public Menu getByUserAndMenuId(Long userId, Long menuId);

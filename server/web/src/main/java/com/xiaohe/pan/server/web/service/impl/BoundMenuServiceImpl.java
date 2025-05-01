@@ -6,22 +6,29 @@ import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
 import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.common.model.dto.EventDTO;
 import com.xiaohe.pan.common.model.dto.EventsDTO;
+import com.xiaohe.pan.common.model.dto.MergeEvent;
 import com.xiaohe.pan.common.model.vo.EventVO;
 import com.xiaohe.pan.common.util.MD5Util;
 import com.xiaohe.pan.server.web.convert.BoundMenuConvert;
 import com.xiaohe.pan.server.web.core.queue.BindingEventQueue;
+import com.xiaohe.pan.server.web.core.queue.MergeEventQueue;
 import com.xiaohe.pan.server.web.mapper.BoundMenuMapper;
 import com.xiaohe.pan.server.web.mapper.DeviceMapper;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.domain.Device;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.Menu;
+import com.xiaohe.pan.server.web.model.dto.ResolveConflictDTO;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import com.xiaohe.pan.server.web.model.event.BoundMenuEvent;
 import com.xiaohe.pan.server.web.model.vo.BoundMenuVO;
+import com.xiaohe.pan.server.web.model.vo.MenuConflictVO;
+import com.xiaohe.pan.server.web.model.vo.ResolvedConflictVO;
 import com.xiaohe.pan.server.web.service.BoundMenuService;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.service.MenuService;
+import com.xiaohe.pan.server.web.util.SecurityContextUtil;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -120,6 +127,17 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
     }
 
     @Override
+    public BoundMenu getBoundMenuByMenuId(Long menuId) {
+        LambdaQueryWrapper<BoundMenu> lambda = new LambdaQueryWrapper<>();
+        lambda.eq(BoundMenu::getId, menuId);
+        BoundMenu boundMenu = baseMapper.selectOne(lambda);
+        if (Objects.isNull(boundMenu)) {
+            return null;
+        }
+        return boundMenu;
+    }
+
+    @Override
     public List<BoundMenuVO> getDeviceBindings(Long userId, Long deviceId) {
         if (!deviceMapper.exists(new LambdaQueryWrapper<Device>()
                 .eq(Device::getId, deviceId)
@@ -139,11 +157,210 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         lambda.in(Menu::getId, remoteMenuIdList);
         Map<Long, String> id2DisplayPath = menuService.list(lambda).stream()
                 .collect(Collectors.toMap(Menu::getId, Menu::getDisplayPath));
-        List<BoundMenuVO> boundMenuVOList = BoundMenuConvert.INSTANCE.boundMenuListConvertTOBoundMenuVOList(boundMenus);
+        List<BoundMenuVO> boundMenuVOList = new ArrayList<>();
+        for (BoundMenu boundMenu : boundMenus) {
+            BoundMenuVO boundMenuVO = new BoundMenuVO();
+            BeanUtils.copyProperties(boundMenu, boundMenuVO);
+            boundMenuVOList.add(boundMenuVO);
+        }
         for (BoundMenuVO menuVO : boundMenuVOList) {
             menuVO.setRemoteMenuPath(id2DisplayPath.get(menuVO.getRemoteMenuId()));
         }
         return boundMenuVOList;
+    }
+
+    @Override
+    public ResolvedConflictVO getResolvedConflict(Menu menu) {
+        // 已经解决的冲突
+        List<Menu> subMenuList = new ArrayList<>();
+        menuService.getAllSubMenu(menu.getId(), subMenuList);
+        List<Long> subMenuIdList = subMenuList.stream().map(Menu::getId).collect(Collectors.toList());
+        subMenuIdList.add(menu.getId());
+        List<File> subFileList = fileService.getSubFileByMenuList(subMenuIdList);
+
+        List<Menu> reslovedMenuList = subMenuList.stream().filter(m -> m.getSource() == 3).collect(Collectors.toList());
+        List<File> reslovedFileList = subFileList.stream().filter(f -> f.getSource() == 3).collect(Collectors.toList());
+        ResolvedConflictVO vo = new ResolvedConflictVO();
+        vo.setResolvedFileList(reslovedFileList);
+        vo.setResolvedMenuList(reslovedMenuList);
+        return vo;
+    }
+
+    // 解决冲突
+    @Override
+    public void resolveConflict(ResolveConflictDTO resolveConflictDTO) throws IOException {
+        if (Objects.isNull(resolveConflictDTO.getCurrentMenuId())) {
+                throw new BusinessException("当前目录ID不能为空");
+        }
+        
+        // 获取当前冲突目录
+        Menu currentMenu = menuService.getById(resolveConflictDTO.getCurrentMenuId());
+        if (Objects.isNull(currentMenu)) {
+            throw new BusinessException("目录不存在");
+        }
+        
+        // 获取绑定记录
+        LambdaQueryWrapper<BoundMenu> lambda = new LambdaQueryWrapper<>();
+        lambda.eq(BoundMenu::getRemoteMenuId, currentMenu.getId());
+        BoundMenu boundMenu = baseMapper.selectOne(lambda);
+        if (Objects.isNull(boundMenu)) {
+            throw new BusinessException("绑定记录不存在");
+        }
+        
+        // 获取设备信息
+        Device device = deviceMapper.selectById(boundMenu.getDeviceId());
+        if (Objects.isNull(device)) {
+            throw new BusinessException("设备不存在");
+        }
+
+        // 获取当前文件夹下所有的文件与目录
+        List<Menu> subMenuList = new ArrayList<>();
+        menuService.getAllSubMenu(currentMenu.getId(), subMenuList);
+        List<Long> subMenuIdList = subMenuList.stream().map(Menu::getId).collect(Collectors.toList());
+        subMenuIdList.add(currentMenu.getId());
+        List<File> subFileList = fileService.getSubFileByMenuList(subMenuIdList);
+
+        // 删除不在用户解决方案中的冲突项
+        deleteConflictItems(resolveConflictDTO, currentMenu, subMenuList, subFileList);
+
+        // 创建合并事件并添加到队列中
+        createMergeEvents(resolveConflictDTO, boundMenu, subMenuList, subFileList);
+
+        // 处理用户选择保留的目录
+        handleResolvedMenus(resolveConflictDTO, currentMenu);
+
+        // 处理用户选择保留的文件
+        handleResolvedFiles(resolveConflictDTO, currentMenu);
+    }
+    
+    /**
+     * 处理用户选择保留的目录
+     */
+    private void handleResolvedMenus(ResolveConflictDTO resolveConflictDTO, Menu currentMenu) {
+        if (CollectionUtils.isEmpty(resolveConflictDTO.getMenuItems())) {
+            return;
+        }
+        // 更新所有用户选择保留的目录，将source设置为3（已合并）
+        for (Menu menu : resolveConflictDTO.getMenuItems()) {
+            menu.setSource(3); // 设置为已合并状态
+            menuService.updateById(menu);
+        }
+    }
+    
+    /**
+     * 处理用户选择保留的文件
+     */
+    private void handleResolvedFiles(ResolveConflictDTO resolveConflictDTO, Menu currentMenu) {
+        if (CollectionUtils.isEmpty(resolveConflictDTO.getFileItems())) {
+            return;
+        }
+        
+        // 更新所有用户选择保留的文件，将source设置为3（已合并）
+        for (File file : resolveConflictDTO.getFileItems()) {
+            if (file.getSource() == 3) continue;
+            file.setSource(3); // 设置为已合并状态
+            fileService.updateById(file);
+        }
+    }
+
+    private void deleteConflictItems(ResolveConflictDTO resolveConflictDTO,
+                                     Menu currentMenu,
+                                     List<Menu> subMenuList, List<File> subFileList) throws IOException {
+        Long userId = SecurityContextUtil.getCurrentUser().getId();
+        // 获取当前目录下已经合并所有的文件和子目录
+        List<Long> resolvedMenuIds = CollectionUtils.isEmpty(resolveConflictDTO.getMenuItems()) ?
+                Collections.emptyList() :
+                resolveConflictDTO.getMenuItems().stream().map(Menu::getId).collect(Collectors.toList());
+
+        List<Long> resolvedFileIds = CollectionUtils.isEmpty(resolveConflictDTO.getFileItems()) ?
+                Collections.emptyList() :
+                resolveConflictDTO.getFileItems().stream().map(File::getId).collect(Collectors.toList());
+        // 删除不在解决方案中的目录
+        List<Menu> menuToDelete = subMenuList.stream().filter(m -> !resolvedMenuIds.contains(m.getId())).collect(Collectors.toList());
+        List<File> fileToDelete = subFileList.stream().filter(f -> !resolvedFileIds.contains(f.getId())).collect(Collectors.toList());
+        if (!CollectionUtils.isEmpty(fileToDelete)) {
+            fileService.deleteFile(fileToDelete.stream().map(File::getId).collect(Collectors.toList()));
+        }
+        if (!CollectionUtils.isEmpty(menuToDelete)) {
+            menuService.removeBatchByIds(menuToDelete);
+        }
+    }
+
+    /**
+     * 创建合并事件并添加到队列中
+     */
+    @Resource
+    private MergeEventQueue mergeEventQueue;
+    
+    private void createMergeEvents(ResolveConflictDTO resolveConflictDTO, BoundMenu boundMenu,
+                                   List<Menu> subMenuList, List<File> subFileList) throws IOException {
+        // 最终的目录和文件
+        Map<Long, Menu> subMenuMap = subMenuList.stream().collect(Collectors.toMap(Menu::getId, m -> m));
+        Map<Long, File> subFileMap = subFileList.stream().collect(Collectors.toMap(File::getId, f -> f));
+        List<Long> finalMenuList = resolveConflictDTO.getMenuItems().stream().map(Menu::getId).collect(Collectors.toList());
+        List<Long> finalFileList = resolveConflictDTO.getFileItems().stream().map(File::getId).collect(Collectors.toList());
+        // 1. 查看本地的所有目录和文件
+        List<Long> localMenuList = subMenuList.stream().filter(m -> m.getSource().equals(2) || m.getSource().equals(3)).map(Menu::getId).collect(Collectors.toList());
+        List<Long> localFileList = subFileList.stream().filter(m -> m.getSource().equals(2) || m.getSource().equals(3)).map(File::getId).collect(Collectors.toList());
+
+        // 2. 对比本地和最终的目录与文件，加入的事件
+        // 2.1 对比目录
+        // 2.1.1 本地有，最终没有，删除
+        for (Long menuId : localMenuList) {
+            if (!finalMenuList.contains(menuId)) {
+                Menu menu = subMenuMap.get(menuId);
+                MergeEvent event = new MergeEvent();
+                event.setRemoteBoundMenuPath(boundMenu.getRemoteMenuPath());
+                event.setRemoteMenuPath(menu.getDisplayPath());
+                event.setLocalBoundMenuPath(boundMenu.getLocalPath());
+                event.setFilename(menu.getMenuName());
+                event.setType(2); // 删除
+                mergeEventQueue.addEvent(event);
+            }
+        }
+        // 2.1.2 本地没有，最终有，添加
+        for (Long menuId : finalMenuList) {
+            if (!localMenuList.contains(menuId)) {
+                Menu menu = subMenuMap.get(menuId);
+                MergeEvent event = new MergeEvent();
+                event.setRemoteBoundMenuPath(boundMenu.getRemoteMenuPath());
+                event.setRemoteMenuPath(menu.getDisplayPath());
+                event.setLocalBoundMenuPath(boundMenu.getLocalPath());
+                event.setFilename(menu.getMenuName());
+                event.setFileType(1);
+                event.setType(1);
+                mergeEventQueue.addEvent(event);
+            }
+        }
+        // 2.2 对比文件
+        // 2.2.1 本地有，最终没有，删除
+        for (Long fileId : localFileList) {
+            if (!finalFileList.contains(fileId)) {
+                File file = subFileMap.get(fileId);
+                MergeEvent event = new MergeEvent();
+                event.setRemoteBoundMenuPath(boundMenu.getRemoteMenuPath());
+                event.setRemoteMenuPath(file.getDisplayPath());
+                event.setLocalBoundMenuPath(boundMenu.getLocalPath());
+                event.setFilename(file.getFileName());
+                event.setType(2); // 删除
+                event.setFileType(2);
+                mergeEventQueue.addEvent(event);
+            }
+        }
+        // 2.2.2 本地没有，最终有，添加
+        for (Long fileId : finalFileList) {
+            if (!localFileList.contains(fileId)) {
+                File file = subFileMap.get(fileId);
+                MergeEvent event = new MergeEvent();
+                event.setRemoteBoundMenuPath(boundMenu.getRemoteMenuPath());
+                event.setRemoteMenuPath(file.getDisplayPath());
+                event.setLocalBoundMenuPath(boundMenu.getLocalPath());
+                event.setFilename(file.getFileName());
+                event.setType(1);
+                event.setFileType(2);
+                mergeEventQueue.addEvent(event);
+            }
+        }
     }
 
     private List<EventVO> sync(Long remoteMenuId, List<EventDTO> eventDTOList) throws IOException {

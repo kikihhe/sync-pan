@@ -16,6 +16,7 @@ import com.xiaohe.pan.server.web.service.MenuService;
 import com.xiaohe.pan.server.web.util.MenuUtil;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,10 +24,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -173,11 +172,20 @@ public class MenuController {
             // 全部
             default:
                 FileAndMenuListVO vo = handleMixedData(menuDTO, currentUserId, start, pageSize, menuTotal, fileTotal, searchName, orderBy, menuDTO.getDesc());
-                fileList = vo.getFileList();
-                menuList = vo.getMenuList();
+                if (!CollectionUtils.isEmpty(vo.getFileList())) {
+                    fileList = vo.getFileList();
+                }
+                if (!CollectionUtils.isEmpty(vo.getMenuList())) {
+                    menuList = vo.getMenuList();
+                }
         }
 
-        List<MenuDetailVO> menuDetailVOList = MenuConvert.INSTANCE.menuListTOMenuDetailVOList(menuList);
+        List<MenuDetailVO> menuDetailVOList = new ArrayList<>();
+        for (Menu m : menuList) {
+            MenuDetailVO menuDetailVO = new MenuDetailVO();
+            BeanUtils.copyProperties(m, menuDetailVO);
+            menuDetailVOList.add(menuDetailVO);
+        }
         // 填充目录大小
         if (!CollectionUtils.isEmpty(menuList)) {
             Map<Long, Long> idTOSizeMap = menuUtil.batchGetMenuSizes(menuList.stream().map(Menu::getId).collect(Collectors.toList()));
