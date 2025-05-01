@@ -198,7 +198,7 @@ public class FileController {
      * @return
      */
     @PostMapping("/permanentDelete")
-    public Result<Boolean> permanentDelete(@RequestBody Long fileId) {
+    public Result<Boolean> permanentDelete(@RequestParam Long fileId) {
         if (Objects.isNull(fileId)) {
             return Result.error("文件不存在");
         }

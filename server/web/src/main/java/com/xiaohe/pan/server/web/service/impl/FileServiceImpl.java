@@ -23,6 +23,7 @@ import com.xiaohe.pan.storage.api.context.DeleteFileContext;
 import com.xiaohe.pan.storage.api.context.ReadFileContext;
 import com.xiaohe.pan.storage.api.context.StoreFileContext;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,8 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
 
     @Resource
     private MenuUtil menuUtil;
+    @Autowired
+    private FileMapper fileMapper;
 
     /**
      * 获取指定目录下的文件
@@ -245,7 +248,7 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
 
     @Override
     public boolean permanentDelete(Long fileId) throws BusinessException {
-        File file = getById(fileId);
+        File file = fileMapper.getDeletedFileById(fileId);
         if (Objects.isNull(file)) {
             throw new BusinessException("文件不存在");
         }
