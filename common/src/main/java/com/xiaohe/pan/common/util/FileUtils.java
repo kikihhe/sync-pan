@@ -145,4 +145,11 @@ public class FileUtils {
         Files.write(target, Files.readAllBytes(source), StandardOpenOption.APPEND);
     }
 
+    public static String getFileType(String fileName) {
+        int indexOf = fileName.lastIndexOf(".");
+        if (indexOf == -1) {
+            return "";
+        }
+        return fileName.substring(indexOf + 1);
+    }
 }

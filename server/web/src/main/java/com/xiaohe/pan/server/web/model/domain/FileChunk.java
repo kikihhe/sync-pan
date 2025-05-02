@@ -74,7 +74,7 @@ public class FileChunk extends BaseDomain {
     /**
      * 分片文件的大小
      */
-    private Integer chunkSize;
+    private Long chunkSize;
 
     /**
      * 分片所属文件的类型

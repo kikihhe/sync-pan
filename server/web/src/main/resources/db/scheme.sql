@@ -110,4 +110,25 @@ create table user
 )
     charset = utf8mb4;
 
+-- 文件分片
+create table file_chunk(
+    `id` bigint auto_increment primary key,
+    `filename` varchar(255) not null comment '分片名称，${文件名}_chunk_${chunkNumber}',
+    `identifier` varchar(255) not null comment '分片所属完整文件的唯一标识，合并时通过该字段找到完整文件',
+    `chunk_identifier` varchar(255) not null comment '分片的唯一标识，用于区分不同的分片',
+    `menu_id` bigint comment '该文件所属的目录，顶级文件的menu_id为空',
+    `real_path` varchar(500) null comment '文件的真实路径',
+    `chunk_number` int not null comment '分片序号',
+    `total_chunks` int not null comment '总分片数量',
+    `chunk_size` bigint not null comment '分片大小',
+    `total_size` bigint not null comment '文件总大小',
+    `file_type` varchar(50) null comment '分片所属的文件类型',
+    `owner` bigint not null comment '文件所属用户',
+    `expiration_time` datetime null comment '分片过期时间',
+    `storage_type` int null comment '存储方式，1-服务器，2-ALI_OSS，3-MinIO',
+    `create_time` timestamp            null,
+    `update_time` timestamp            null,
+    `deleted`     tinyint(1) default 0 null
+)
+
 insert into user(`username`, `password`, `salt`) values ('root', '123', 'asdfsafd');

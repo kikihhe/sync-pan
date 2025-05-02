@@ -7,8 +7,10 @@ import com.xiaohe.pan.common.util.FileUtils;
 import com.xiaohe.pan.server.web.convert.FileChunkConvert;
 import com.xiaohe.pan.server.web.mapper.FileChunkMapper;
 import com.xiaohe.pan.server.web.mapper.FileMapper;
+import com.xiaohe.pan.server.web.mapper.MenuMapper;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.FileChunk;
+import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.MergeChunkFileDTO;
 import com.xiaohe.pan.server.web.model.dto.UploadChunkFileDTO;
 import com.xiaohe.pan.server.web.service.FileChunkService;
@@ -18,6 +20,7 @@ import com.xiaohe.pan.storage.api.StoreTypeEnum;
 import com.xiaohe.pan.storage.api.context.DeleteFileContext;
 import com.xiaohe.pan.storage.api.context.MergeFileContext;
 import com.xiaohe.pan.storage.api.context.StoreFileChunkContext;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -45,6 +48,8 @@ public class FileChunkServiceImpl extends ServiceImpl<FileChunkMapper, FileChunk
     private String storageType;
 
     private static final ReentrantLock lock = new ReentrantLock();
+    @Autowired
+    private MenuMapper menuMapper;
 
     /**
      * 上传文件分片
@@ -67,8 +72,9 @@ public class FileChunkServiceImpl extends ServiceImpl<FileChunkMapper, FileChunk
         Long userId = SecurityContextUtil.getCurrentUser().getId();
         StoreFileChunkContext context = new StoreFileChunkContext();
         context.setUserId(userId);
+        context.setChunkNumber(chunkFileDTO.getChunkNumber());
+        context.setIdentifier(chunkFileDTO.getIdentifier());
         context.setFilename(chunkFileDTO.getChunkName());
-        context.setChunkNumber(context.getChunkNumber());
         context.setTotalChunks(chunkFileDTO.getTotalChunks());
         context.setCurrentChunkSize(chunkFileDTO.getCurrentChunkSize());
         context.setInputStream(chunkFileDTO.getMultipartFile().getInputStream());
@@ -76,7 +82,13 @@ public class FileChunkServiceImpl extends ServiceImpl<FileChunkMapper, FileChunk
         storageService.storeChunk(context);
 
         // 2. 保存记录
-        FileChunk chunk = FileChunkConvert.INSTANCE.contextToChunk(context);
+        FileChunk chunk = new FileChunk();
+        BeanUtils.copyProperties(context, chunk);
+        chunk.setChunkIdentifier(chunkFileDTO.getChunkIdentifier());
+        chunk.setMenuId(chunkFileDTO.getMenuId());
+        chunk.setFileType(chunkFileDTO.getFileType());
+        chunk.setChunkSize(context.getCurrentChunkSize());
+        chunk.setOwner(userId);
         Integer storeType = StoreTypeEnum.getCodeByDesc(storageType);
         chunk.setStorageType(storeType);
         baseMapper.insert(chunk);
@@ -135,7 +147,6 @@ public class FileChunkServiceImpl extends ServiceImpl<FileChunkMapper, FileChunk
             if (CollectionUtils.isEmpty(chunkList)) {
                 return true;
             }
-            chunkList.sort(null);
             chunkRealPathList = chunkList.stream().map(FileChunk::getRealPath).collect(Collectors.toList());
             context.setIdentifier(fileDTO.getIdentifier());
             context.setUserId(userId);
@@ -143,15 +154,27 @@ public class FileChunkServiceImpl extends ServiceImpl<FileChunkMapper, FileChunk
             context.setFilename(fileDTO.getFileName());
             storageService.mergeFile(context);
         }
+        Long menuId = fileDTO.getMenuId();
+        String displayPath = fileDTO.getFileName();
+        if (Objects.isNull(menuId)) {
+            displayPath = "/" + displayPath;
+        } else {
+            Menu menu = menuMapper.selectById(menuId);
+            displayPath = menu.getDisplayPath() + "/" + displayPath;
+        }
 
         // 3. 合并后的文件入库
         File mergedFile = new File();
         mergedFile.setRealPath(context.getRealPath());
         mergedFile.setFileName(fileDTO.getFileName());
+        mergedFile.setIdentifier(fileDTO.getIdentifier());
+        mergedFile.setDisplayPath(displayPath);
+        mergedFile.setFileType(FileUtils.getFileType(fileDTO.getFileName()));
         mergedFile.setFileSize(fileDTO.getTotalSize());
         mergedFile.setOwner(userId);
         mergedFile.setStorageType(StoreTypeEnum.getCodeByDesc(storageType));
         mergedFile.setMenuId(fileDTO.getMenuId());
+        mergedFile.setSource(1);
         int insert = fileMapper.insert(mergedFile);
         if (insert <= 0) {
             return false;
