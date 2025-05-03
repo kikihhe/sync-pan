@@ -1,5 +1,5 @@
 <archetype>
-  <id>storage-minio</id>
+  <id>storage-fastdfs</id>
   <sources>
     <source>src/main/java/App.java</source>
   </sources>

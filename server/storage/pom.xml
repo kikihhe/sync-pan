@@ -13,7 +13,7 @@
         <module>storage-local</module>
         <module>storage-api</module>
         <module>storage-oss</module>
-        <module>storage-minio</module>
+        <module>storage-fastdfs</module>
     </modules>
     <version>1.0-SNAPSHOT</version>
 

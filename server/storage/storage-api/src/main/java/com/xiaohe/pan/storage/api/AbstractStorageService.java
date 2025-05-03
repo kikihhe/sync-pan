@@ -2,13 +2,19 @@ package com.xiaohe.pan.storage.api;
 
 
 import cn.hutool.core.lang.Assert;
+import com.xiaohe.pan.common.constants.CacheConstants;
+import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.storage.api.context.DeleteFileContext;
 import com.xiaohe.pan.storage.api.context.MergeFileContext;
 import com.xiaohe.pan.storage.api.context.ReadFileContext;
 import com.xiaohe.pan.storage.api.context.StoreFileChunkContext;
 import com.xiaohe.pan.storage.api.context.StoreFileContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public abstract class AbstractStorageService implements StorageService {
     @Override
@@ -95,5 +101,14 @@ public abstract class AbstractStorageService implements StorageService {
     private void checkReadFileContext(ReadFileContext context) {
         Assert.notBlank(context.getRealPath(), "文件真实存储路径不能为空");
         Assert.notNull(context.getOutputStream(), "文件的输出流不能为空");
+    }
+    @Autowired
+    private CacheManager cacheManager;
+
+    protected Cache getCache() {
+        if (Objects.isNull(cacheManager)) {
+            throw new BusinessException("具体的缓存实现需要引用到项目中");
+        }
+        return cacheManager.getCache(CacheConstants.R_PAN_CACHE_NAME);
     }
 }

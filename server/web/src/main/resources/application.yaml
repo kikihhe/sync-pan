@@ -44,7 +44,7 @@ mybatis-plus:
 
 
 storage:
-  type: local # 可选 local/ali_oss/minio
+  type: local # 可选 local/ali_oss/fastdfs
   local:
     root-path: C:/Users/23825/Desktop/毕业设计/测试/single
     root-chunk-path: C:/Users/23825/Desktop/毕业设计/测试/chunk
@@ -56,11 +56,6 @@ storage:
 #    secret-key: your-secret-key
 #    bucket-name: pan-bucket
 
-#minio:
-#    endpoint: http://minio.example.com:9000
-#    access-key: minio-access
-#    secret-key: minio-secret
-#    bucket-name: pan-bucket
 #management:
 #  endpoints:
 #    web:

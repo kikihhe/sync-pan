@@ -1,6 +1,7 @@
 package com.xiaohe.pan.common.util;
 
 import cn.hutool.core.date.DateUtil;
+import com.xiaohe.pan.common.constants.SyncPanConstants;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
@@ -134,7 +135,22 @@ public class FileUtils {
         fileChannel.close();
         writableByteChannel.close();
     }
-
+    /**
+     * 普通的流对流数据传输
+     *
+     * @param inputStream
+     * @param outputStream
+     */
+    public static void writeStream2StreamNormal(InputStream inputStream, OutputStream outputStream) throws IOException {
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = inputStream.read(buffer)) != SyncPanConstants.MINUS_ONE_INT) {
+            outputStream.write(buffer, SyncPanConstants.ZERO_INT, len);
+        }
+        outputStream.flush();
+        inputStream.close();
+        outputStream.close();
+    }
     /**
      * 追加写文件
      *
@@ -143,6 +159,18 @@ public class FileUtils {
      */
     public static void appendWrite(Path target, Path source) throws IOException {
         Files.write(target, Files.readAllBytes(source), StandardOpenOption.APPEND);
+    }
+    /**
+     * 获取文件的类型
+     *
+     * @param filename
+     * @return
+     */
+    public static String getFileExtName(String filename) {
+        if (StringUtils.isBlank(filename) || filename.lastIndexOf(SyncPanConstants.POINT_STR) == SyncPanConstants.MINUS_ONE_INT) {
+            return SyncPanConstants.EMPTY_STR;
+        }
+        return filename.substring(filename.lastIndexOf(SyncPanConstants.POINT_STR) + SyncPanConstants.ONE_INT).toLowerCase();
     }
 
     public static String getFileType(String fileName) {

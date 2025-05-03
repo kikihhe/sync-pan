@@ -6,17 +6,13 @@
         <artifactId>storage</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>storage-oss</artifactId>
-    <name>Archetype - storage-oss</name>
+    <artifactId>storage-fastdfs</artifactId>
+    <name>Archetype - storage-fastdfs</name>
     <url>http://maven.apache.org</url>
 
 
+
     <dependencies>
-        <dependency>
-            <groupId>com.aliyun.oss</groupId>
-            <artifactId>aliyun-sdk-oss</artifactId>
-            <version>2.8.3</version>
-        </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-beans</artifactId>
@@ -44,6 +40,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.github.tobato</groupId>
+            <artifactId>fastdfs-client</artifactId>
+            <version>1.26.1-RELEASE</version>
         </dependency>
     </dependencies>
 </project>
