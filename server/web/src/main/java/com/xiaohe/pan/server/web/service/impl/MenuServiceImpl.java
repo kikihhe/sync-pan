@@ -284,7 +284,8 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
                     .setMenuLevel(currentLevel)
                     .setDisplayPath(part)
                     .setOwner(userId)
-                    .setSource(menu.getSource());
+                    .setSource(menu.getSource())
+                    .setBound(menu.getBound());
             boolean save = save(current);
             if (!save) {
                 throw new BusinessException("目录添加失败: " + part);
