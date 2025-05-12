@@ -102,7 +102,7 @@ public abstract class AbstractStorageService implements StorageService {
         Assert.notBlank(context.getRealPath(), "文件真实存储路径不能为空");
         Assert.notNull(context.getOutputStream(), "文件的输出流不能为空");
     }
-    @Autowired
+    @Autowired(required = false)
     private CacheManager cacheManager;
 
     protected Cache getCache() {
