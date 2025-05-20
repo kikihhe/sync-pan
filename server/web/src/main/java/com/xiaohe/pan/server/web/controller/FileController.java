@@ -100,8 +100,7 @@ public class FileController {
         File rawFile = new File();
         BeanUtils.copyProperties(file, rawFile);
         fileService.updateById(rawFile);
-        // 放入事件队列
-        if (menu.getBound()) {
+        if (menu != null && menu.getBound()) {
             BoundMenu boundMenu = boundMenuService.getBoundMenuByMenuId(menu.getId());
             MergeEvent mergeEvent = new MergeEvent();
             mergeEvent.setOldFileName(byId.getFileName());

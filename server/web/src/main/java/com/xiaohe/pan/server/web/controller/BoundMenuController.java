@@ -51,6 +51,9 @@ public class BoundMenuController {
 
     @PostMapping("/createBinding")
     public Result<BoundMenu> createBinding(@RequestBody BoundMenu request) throws JsonProcessingException {
+        if (request.getRemoteMenuId() == null) {
+            return Result.error("文件不存在，或者权限不足(禁止绑定顶级目录)");
+        }
         Long userId = SecurityContextUtil.getCurrentUserId();
         return Result.success(boundMenuService.createBinding(userId, request));
     }
