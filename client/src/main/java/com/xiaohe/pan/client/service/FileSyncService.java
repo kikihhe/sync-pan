@@ -185,12 +185,13 @@ public class FileSyncService {
         eventContainer.addMergedEvent(targetPath);
         File targetFile = new File(targetPath);
         try {
-            if (mergeEvent.getType() == 1) { // 创建
-                // 目录
+            // 1. 创建
+            if (mergeEvent.getType() == 1) {
+                // 1.1 目录
                 if (mergeEvent.getFileType() == 1) {
                     targetFile.mkdirs();
                 } else {
-                    // 文件
+                    // 1.2 文件
                     if (targetFile.exists()) {
                         targetFile.delete();
                     }
@@ -201,10 +202,21 @@ public class FileSyncService {
                         e.printStackTrace();
                     }
                 }
-            } else if (mergeEvent.getType() == 2) { // 删除
+            }
+            // 2. 删除
+            else if (mergeEvent.getType() == 2) {
                 // 不管文件还是目录直接删
                 if (targetFile.exists()) {
                     Files.delete(targetFile.toPath());
+                }
+            }
+            // 3. 修改
+            else if (mergeEvent.getType() == 3) {
+                // 只提供修改名称功能
+                if (!mergeEvent.getOldFileName().equals(mergeEvent.getFilename()) && targetFile.exists()) {
+                    targetFile = new File(mergeEvent.getOldFileName());
+                    File renameTo = new File(mergeEvent.getFilename());
+                    targetFile.renameTo(renameTo);
                 }
             }
         } catch (IOException e) {
