@@ -447,7 +447,9 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
                 case DIRECTORY_CREATE:
                     // 创建目录
                     eventVO = menuCreateEvent(boundRecord, boundMenu, eventDTO);
-                    eventVOList.add(eventVO);
+                    if (Objects.nonNull(eventVO)) {
+                        eventVOList.add(eventVO);
+                    }
                     break;
                 case DIRECTORY_MODIFY:
                     // 修改目录
@@ -466,7 +468,9 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
                 case FILE_CREATE:
                     // 创建文件
                     eventVO = fileCreateEvent(boundRecord, boundMenu, eventDTO);
-                    eventVOList.add(eventVO);
+                    if (Objects.nonNull(eventVO)) {
+                        eventVOList.add(eventVO);
+                    }
                     break;
                 case FILE_MODIFY:
                     // 修改文件
@@ -537,6 +541,10 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         String remoteMenuPath = boundRecord.getRemoteMenuPath();
         // 计算本地的目录映射的云端路径
         String calculatedRemotePath = calculateRemotePath(localBoundMenuPath, remoteMenuPath, eventDTO.getLocalPath());
+        // 如果已经存在，不再添加
+        if (menuService.getByDisplayPath(calculatedRemotePath) != null) {
+            return null;
+        }
         String menuName = calculatedRemotePath.substring(calculatedRemotePath.lastIndexOf("/") + 1);
         Menu newMenu = new Menu();
         newMenu.setDisplayPath(calculatedRemotePath);
@@ -565,6 +573,11 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         String localBoundMenuPath = boundRecord.getLocalPath();
         String remoteMenuPath = boundRecord.getRemoteMenuPath();
         String calculatedRemotePath = calculateRemotePath(localBoundMenuPath, remoteMenuPath, eventDTO.getLocalPath());
+        // 文件已存在
+        File existsFile = fileService.lambdaQuery().eq(File::getDisplayPath, calculatedRemotePath).one();
+        if (existsFile != null) {
+            return null;
+        }
         String fileName = calculatedRemotePath.substring(calculatedRemotePath.lastIndexOf("/") + 1);
         String menuPath = calculatedRemotePath.substring(0, calculatedRemotePath.lastIndexOf("/"));
         Menu menu = menuService.getByDisplayPath(menuPath);
