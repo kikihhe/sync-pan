@@ -65,4 +65,8 @@ public class Result<T> implements Serializable {
     public static <T> Result<T> error(T data) {
         return result(ResponseCodeConstants.INTERNAL_ERROR, "error", data);
     }
+
+    public static <T> Result<T> error(Integer code, String message) {
+        return result(code, message, null);
+    }
 }

@@ -71,6 +71,12 @@ public class DeviceController {
         }
         logger.info("收到来自 deviceKey=" + deviceKey + "的心跳请求");
         Device device = deviceService.verifySecret(deviceKey, secret);
+        if (device == null) {
+            return Result.error(50001, "设备不存在");
+        }
+        if (Objects.equals(device.getStatus(), DeviceStatus.DELETED.getCode())) {
+            return Result.error(50002, "设备已经删除");
+        }
         return deviceService.processHeartbeat(device);
     }
 

@@ -103,19 +103,19 @@ public class FileController {
         File rawFile = new File();
         BeanUtils.copyProperties(file, rawFile);
         fileService.updateById(rawFile);
-        if (menu != null && menu.getBound()) {
-            BoundMenu boundMenu = boundMenuService.getBoundMenuByMenuId(menu.getId());
-            MergeEvent mergeEvent = new MergeEvent();
-            mergeEvent.setOldFileName(byId.getFileName());
-            mergeEvent.setFilename(file.getFileName());
-            mergeEvent.setRemoteMenuPath(menu.getDisplayPath());
-            mergeEvent.setRemoteBoundMenuPath(boundMenu.getRemoteMenuPath());
-            mergeEvent.setType(3);
-            mergeEvent.setFileType(2);
-            mergeEvent.setLocalBoundMenuPath(boundMenu.getLocalPath());
-            mergeEvent.setCreateTime(LocalDateTime.now());
-            mergeEventQueue.addEvent(mergeEvent);
-        }
+//        if (menu != null && menu.getBound()) {
+//            BoundMenu boundMenu = boundMenuService.getBoundMenuByMenuId(menu.getId());
+//            MergeEvent mergeEvent = new MergeEvent();
+//            mergeEvent.setOldFileName(byId.getFileName());
+//            mergeEvent.setFilename(file.getFileName());
+//            mergeEvent.setRemoteMenuPath(menu.getDisplayPath());
+//            mergeEvent.setRemoteBoundMenuPath(boundMenu.getRemoteMenuPath());
+//            mergeEvent.setType(3);
+//            mergeEvent.setFileType(2);
+//            mergeEvent.setLocalBoundMenuPath(boundMenu.getLocalPath());
+//            mergeEvent.setCreateTime(LocalDateTime.now());
+//            mergeEventQueue.addEvent(mergeEvent);
+//        }
         return Result.success("修改成功");
     }
 

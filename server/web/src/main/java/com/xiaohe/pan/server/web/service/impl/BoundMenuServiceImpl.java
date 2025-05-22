@@ -387,7 +387,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         if (Objects.isNull(boundRecord)) {
             throw new BusinessException("绑定记录不存在");
         }
-        if (boundRecord.getStatus() == 2) {
+        if (boundRecord.getStatus() == 2 || boundRecord.getStatus() == 0) {
             throw new BusinessException(boundRecord.getLocalPath() + " -> " + boundRecord.getRemoteMenuPath() + " 的同步已暂停");
         }
         // 将事件分类为目录事件和文件事件

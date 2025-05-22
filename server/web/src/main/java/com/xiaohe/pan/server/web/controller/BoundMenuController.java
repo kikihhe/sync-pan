@@ -8,6 +8,7 @@ import com.xiaohe.pan.common.model.dto.MergeEvent;
 import com.xiaohe.pan.common.model.vo.EventVO;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.core.queue.MergeEventQueue;
+import com.xiaohe.pan.server.web.enums.DeviceStatus;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.domain.Device;
 import com.xiaohe.pan.server.web.model.domain.Menu;
@@ -88,12 +89,15 @@ public class BoundMenuController {
 
     @PostMapping("/sync")
     public Result<List<EventVO>> sync(@RequestBody EventsDTO eventsDTO) throws IOException {
-
         // 验证设备和密钥
         Device device = deviceService.verifySecret(
                 String.valueOf(eventsDTO.getDeviceKey()),
                 eventsDTO.getSecret()
         );
+        // 检查设备状态
+        if (device.getStatus() != 0) {
+            return Result.error("设备状态异常: 设备" + DeviceStatus.getByCode(device.getStatus()).getDesc());
+        }
 
         List<EventVO> eventVOList = boundMenuService.sync(eventsDTO.getEvents());
 

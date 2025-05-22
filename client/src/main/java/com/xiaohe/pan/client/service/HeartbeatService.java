@@ -60,7 +60,8 @@ public class HeartbeatService {
                 throw new RuntimeException(result.getMessage());
             }
             // 服务端返回 505 表示设备已被删除
-            if (result.getCode() == 505) {
+            if (result.getCode() == 50001 || result.getCode() == 50002) {
+                System.out.println("设备不存在，程序停止");
                 System.exit(1);
             }
             DeviceHeartbeatVO vo = result.getData();
