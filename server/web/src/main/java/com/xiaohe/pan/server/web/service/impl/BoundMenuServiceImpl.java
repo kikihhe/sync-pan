@@ -315,6 +315,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
                 event.setLocalBoundMenuPath(boundMenu.getLocalPath());
                 event.setFilename(menu.getMenuName());
                 event.setType(2); // 删除
+                event.setCreateTime(LocalDateTime.now());
                 mergeEventQueue.addEvent(event);
             }
         }
@@ -329,6 +330,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
                 event.setFilename(menu.getMenuName());
                 event.setFileType(1);
                 event.setType(1);
+                event.setCreateTime(LocalDateTime.now());
                 mergeEventQueue.addEvent(event);
             }
         }
@@ -344,6 +346,10 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
                 event.setFilename(file.getFileName());
                 event.setType(2); // 删除
                 event.setFileType(2);
+                event.setCreateTime(LocalDateTime.now());
+                // 读出文件内容
+                byte[] data = fileService.readFile(file);
+                event.setData(data);
                 mergeEventQueue.addEvent(event);
             }
         }
@@ -351,6 +357,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         for (Long fileId : finalFileList) {
             if (!localFileList.contains(fileId)) {
                 File file = subFileMap.get(fileId);
+
                 MergeEvent event = new MergeEvent();
                 event.setRemoteBoundMenuPath(boundMenu.getRemoteMenuPath());
                 event.setRemoteMenuPath(file.getDisplayPath());
@@ -358,6 +365,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
                 event.setFilename(file.getFileName());
                 event.setType(1);
                 event.setFileType(2);
+                event.setCreateTime(LocalDateTime.now());
                 mergeEventQueue.addEvent(event);
             }
         }

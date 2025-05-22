@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -306,6 +307,22 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         lambda.eq(File::getDisplayPath, displayPath);
         return baseMapper.selectOne(lambda);
     }
+
+    @Override
+    public byte[] readFile(File file) throws IOException {
+        ReadFileContext context = new ReadFileContext();
+        // 创建字节数组输出流
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+        context.setRealPath(file.getRealPath());
+        // 设置输出流
+        context.setOutputStream(bos);
+
+        storageService.readFile(context);
+
+        return bos.toByteArray();
+    }
+
     /**
      * 添加公共的文件读取响应头
      *

@@ -21,10 +21,13 @@ import com.xiaohe.pan.server.web.service.MenuService;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -159,5 +162,6 @@ public class BoundMenuController {
         List<MergeEvent> mergeEvents = mergeEventQueue.pollAllEvents();
         return Result.success(mergeEvents);
     }
+
 
 }

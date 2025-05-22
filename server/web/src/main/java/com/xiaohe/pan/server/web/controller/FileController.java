@@ -39,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
@@ -75,6 +76,8 @@ public class FileController {
         fileDTO.setFileSize(fileDTO.getMultipartFile().getSize());
         fileDTO.setSource(1);
         fileService.uploadFile(fileDTO.getMultipartFile().getInputStream(), fileDTO);
+
+
         return Result.success("上传成功");
     }
 
@@ -110,6 +113,7 @@ public class FileController {
             mergeEvent.setType(3);
             mergeEvent.setFileType(2);
             mergeEvent.setLocalBoundMenuPath(boundMenu.getLocalPath());
+            mergeEvent.setCreateTime(LocalDateTime.now());
             mergeEventQueue.addEvent(mergeEvent);
         }
         return Result.success("修改成功");

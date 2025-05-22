@@ -2,6 +2,8 @@ package com.xiaohe.pan.common.model.dto;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 public class MergeEvent {
     /**
@@ -47,4 +49,17 @@ public class MergeEvent {
      * 如果是文件，则填充内容
      */
     private byte[] data;
+
+    /**
+     * 事件发生时间
+     */
+    private LocalDateTime createTime;
+
+    /**
+     * 获取云端的绝对路径
+     * @return
+     */
+    public String getRemoteAbsolutePath() {
+        return remoteMenuPath + "/" + filename;
+    }
 }

@@ -43,4 +43,6 @@ public interface FileService extends IService<File> {
     List<File> getAllSubFile(Long menuId, List<File> finalFileList);
 
     public List<File> getSubFileByMenuList(List<Long> menuIdList);
+
+    public byte[] readFile(File file) throws IOException;
 }
