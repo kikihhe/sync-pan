@@ -41,7 +41,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/file")
@@ -86,6 +88,19 @@ public class FileController {
         if (CollectionUtils.isEmpty(fileDTO.getFileList())) {
             return Result.success("请选择文件");
         }
+        List<File> fileList = fileService.listByIds(fileDTO.getFileList());
+        List<Long> menuIdList = fileList.stream().map(File::getMenuId).collect(Collectors.toList());
+        List<Menu> menuList = menuService.listByIds(menuIdList);
+        // 将menu.id -> menu对应为map
+        Map<Long, Menu> menuMap = menuList.stream().collect(Collectors.toMap(Menu::getId, menu -> menu));
+        for (File file : fileList) {
+            Menu menu = menuMap.get(file.getMenuId());
+            if (menu != null) {
+                if (menu.getBound()) {
+                    return Result.success("禁止在云端删除本地的文件: " + file.getFileName());
+                }
+            }
+        }
         fileService.deleteFile(fileDTO.getFileList());
         return Result.success("删除成功");
     }
@@ -100,6 +115,9 @@ public class FileController {
             return Result.error("权限不足");
         }
         Menu menu = menuService.getById(file.getMenuId());
+        if (menu.getBound() == true) {
+            return Result.success("禁止在云端修改本地的文件");
+        }
         File rawFile = new File();
         BeanUtils.copyProperties(file, rawFile);
         fileService.updateById(rawFile);
