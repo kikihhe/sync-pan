@@ -79,7 +79,6 @@ public class FileController {
         fileDTO.setSource(1);
         fileService.uploadFile(fileDTO.getMultipartFile().getInputStream(), fileDTO);
 
-
         return Result.success("上传成功");
     }
 
