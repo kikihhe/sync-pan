@@ -213,7 +213,11 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
         menuTreeTOMenuList(parentMenu, menuTreeDTO, menuList);
         for (Menu m : menuList) {
             m.setSource(1);
-            m.setBound(parentMenu.getBound());
+            if (parentMenu == null) {
+                m.setBound(false);
+            } else {
+                m.setBound(parentMenu.getBound());
+            }
         }
         saveBatch(menuList);
         // 3. 异步在 redis 创建目录
@@ -228,7 +232,8 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
         Menu menu = new Menu();
         BeanUtils.copyProperties(menuTreeDTO, menu);
         menu.setOwner(SecurityContextUtil.getCurrentUserId());
-        menu.setDisplayPath(parent.getDisplayPath() + "/" + menu.getMenuName());
+        String parentDisplayPath = (parent == null || parent.getDisplayPath().isEmpty()) ? "" : parent.getDisplayPath();
+        menu.setDisplayPath(parentDisplayPath + "/" + menu.getMenuName());
         list.add(menu);
         if (CollectionUtils.isEmpty(menuTreeDTO.getChildren())) {
             return;

@@ -41,6 +41,7 @@ public class AuthenticationFilter implements Filter {
             "/file/download",
             "/device/heartbeat",
             "/bound/sync",
+            "/bound/getMergedEvents",
             "/file/preview"
 //            "/device/"
     );

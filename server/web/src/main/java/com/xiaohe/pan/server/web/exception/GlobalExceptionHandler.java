@@ -11,12 +11,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(value = BusinessException.class)
     public Result handlerBusinessException(BusinessException exception) {
+        exception.printStackTrace();
         String message = exception.getMessage();
         return Result.error(message);
     }
 
     @ExceptionHandler(value = Exception.class)
     public Result handlerException(Exception exception) {
+        exception.printStackTrace();
         String message = exception.getMessage();
         return Result.error(message);
     }

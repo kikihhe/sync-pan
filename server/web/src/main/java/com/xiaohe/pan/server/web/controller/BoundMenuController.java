@@ -161,7 +161,7 @@ public class BoundMenuController {
         if (!StringUtils.hasText(deviceKey) || !StringUtils.hasText(secret)) {
             return Result.result(505, "设备 " + deviceKey + " 未注册或密钥错误", null);
         }
-        logger.info("收到来自 deviceKey=" + deviceKey + "的心跳请求");
+//        logger.info("收到来自 deviceKey=" + deviceKey + "的心跳请求");
         deviceService.verifySecret(deviceKey, secret);
         List<MergeEvent> mergeEvents = mergeEventQueue.pollAllEvents();
         return Result.success(mergeEvents);

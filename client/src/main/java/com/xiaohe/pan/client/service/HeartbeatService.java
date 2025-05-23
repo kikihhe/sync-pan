@@ -14,6 +14,8 @@ import com.xiaohe.pan.common.util.Result;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +48,7 @@ public class HeartbeatService {
             map.put("deviceKey", ClientConfig.getDeviceKey());
             map.put("secret", ClientConfig.getSecret());
 
+            System.out.println("发送心跳" + LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME));
             String response = httpClient.post("/device/heartbeat", map, "");
 
             Result<DeviceHeartbeatVO> result = JSON.parseObject(

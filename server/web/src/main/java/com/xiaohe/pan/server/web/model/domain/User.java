@@ -32,6 +32,11 @@ public class User extends BaseDomain implements Serializable {
     private String question;
 
     /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
      * 密保答案
      */
     private String answer;

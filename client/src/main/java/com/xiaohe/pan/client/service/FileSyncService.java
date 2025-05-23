@@ -129,6 +129,7 @@ public class FileSyncService {
         try {
             List<MergeEvent> mergeEventList = fetchMergeEventsFromServer();
             if (CollectionUtils.isEmpty(mergeEventList)) {
+                System.out.println("没有需要处理的合并事件");
                 return;
             }
             // 把 localBoundMenuPath 中的 \\ 替换为 /

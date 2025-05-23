@@ -65,6 +65,24 @@ create table file
 )
     charset = utf8mb4;
 
+create table user
+(
+    id          bigint auto_increment
+        primary key,
+    username    varchar(255)         not null,
+    password    varchar(255)         not null,
+    avatar    varchar(255)         null,
+    salt        varchar(50)          not null,
+    question    varchar(255)         null,
+    answer      varchar(255)         null,
+    create_time timestamp            null,
+    update_time timestamp            null,
+    deleted     tinyint(1) default 0 null,
+    constraint username
+        unique (username)
+)
+    charset = utf8mb4;
+
 create table menu
 (
     id           bigint auto_increment
@@ -92,23 +110,6 @@ create table secret
     update_time timestamp            null,
     deleted     tinyint(1) default 0 null
 );
-
-create table user
-(
-    id          bigint auto_increment
-        primary key,
-    username    varchar(255)         not null,
-    password    varchar(255)         not null,
-    salt        varchar(50)          not null,
-    question    varchar(255)         null,
-    answer      varchar(255)         null,
-    create_time timestamp            null,
-    update_time timestamp            null,
-    deleted     tinyint(1) default 0 null,
-    constraint username
-        unique (username)
-)
-    charset = utf8mb4;
 
 -- 文件分片
 create table file_chunk(

@@ -46,8 +46,8 @@ mybatis-plus:
 storage:
   type: local # 可选 local/ali_oss/fastdfs
   local:
-    root-path: C:/Users/23825/Desktop/毕业设计/测试/single
-    root-chunk-path: C:/Users/23825/Desktop/毕业设计/测试/chunk
+    root-path: /Users/kikihhe/sync-pan/file/single
+    root-chunk-path: /Users/kikihhe/sync-pan/file/chunk
 
 
 #oss:
