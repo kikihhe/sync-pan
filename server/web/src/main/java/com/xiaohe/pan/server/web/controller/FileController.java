@@ -6,6 +6,7 @@ import com.xiaohe.pan.common.util.PageQuery;
 import com.xiaohe.pan.common.util.PageVO;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.constants.FileConstants;
+import com.xiaohe.pan.server.web.core.queue.ConflictMap;
 import com.xiaohe.pan.server.web.core.queue.MergeEventQueue;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.domain.File;
@@ -62,6 +63,9 @@ public class FileController {
     @Autowired
     private BoundMenuService boundMenuService;
 
+    @Autowired
+    private ConflictMap conflictMap;
+
     /**
      * 上传文件
      * @return
@@ -75,9 +79,18 @@ public class FileController {
         if (nameDuplicate) {
             return Result.error("文件名重复!");
         }
+        Long menuId = fileDTO.getMenuId();
+        if (menuId != null) {
+            Menu menu = menuService.getById(menuId);
+            if (menu != null && menu.getBound()) {
+                fileDTO.setBoundMenuId(menu.getBoundMenuId());
+            }
+        }
         fileDTO.setFileSize(fileDTO.getMultipartFile().getSize());
         fileDTO.setSource(1);
         fileService.uploadFile(fileDTO.getMultipartFile().getInputStream(), fileDTO);
+
+
 
         return Result.success("上传成功");
     }
@@ -87,20 +100,24 @@ public class FileController {
         if (CollectionUtils.isEmpty(fileDTO.getFileList())) {
             return Result.success("请选择文件");
         }
-        List<File> fileList = fileService.listByIds(fileDTO.getFileList());
-        List<Long> menuIdList = fileList.stream().map(File::getMenuId).collect(Collectors.toList());
-        List<Menu> menuList = menuService.listByIds(menuIdList);
-        // 将menu.id -> menu对应为map
-        Map<Long, Menu> menuMap = menuList.stream().collect(Collectors.toMap(Menu::getId, menu -> menu));
-        for (File file : fileList) {
-            Menu menu = menuMap.get(file.getMenuId());
-            if (menu != null) {
-                if (menu.getBound()) {
-                    return Result.success("禁止在云端删除本地的文件: " + file.getFileName());
-                }
-            }
-        }
+//        List<File> fileList = fileService.listByIds(fileDTO.getFileList());
+//        List<Long> menuIdList = fileList.stream().map(File::getMenuId).collect(Collectors.toList());
+//        List<Menu> menuList = menuService.listByIds(menuIdList);
+//        // 将menu.id -> menu对应为map
+//        Map<Long, Menu> menuMap = menuList.stream().collect(Collectors.toMap(Menu::getId, menu -> menu));
+//        for (File file : fileList) {
+//            Menu menu = menuMap.get(file.getMenuId());
+//            if (menu != null) {
+//                if (menu.getBound()) {
+//                    return Result.success("禁止在云端删除本地的文件: " + file.getFileName());
+//                }
+//            }
+//        }
         fileService.deleteFile(fileDTO.getFileList());
+        List<File> fileList = fileService.listByIds(fileDTO.getFileList());
+        for (File file : fileList) {
+            conflictMap.addFileConflict(file, null, 2);
+        }
         return Result.success("删除成功");
     }
 
@@ -119,6 +136,8 @@ public class FileController {
         }
         File rawFile = new File();
         BeanUtils.copyProperties(file, rawFile);
+        rawFile.setSource(1);
+        rawFile.setDisplayPath(byId.getDisplayPath().substring(byId.getDisplayPath().lastIndexOf("/") + 1) + "/" + file.getFileName());
         fileService.updateById(rawFile);
 //        if (menu != null && menu.getBound()) {
 //            BoundMenu boundMenu = boundMenuService.getBoundMenuByMenuId(menu.getId());
@@ -133,6 +152,7 @@ public class FileController {
 //            mergeEvent.setCreateTime(LocalDateTime.now());
 //            mergeEventQueue.addEvent(mergeEvent);
 //        }
+        conflictMap.addFileConflict(rawFile, byId.getFileName(), 3);
         return Result.success("修改成功");
     }
 

@@ -57,6 +57,12 @@ public class File extends BaseDomain{
      */
     private String displayPath;
 
+
+    /**
+     * 该文件所属的顶级同步目录id
+     */
+    private Long boundMenuId;
+
     /**
      * 文件来源
      * 1: 云端

@@ -105,7 +105,7 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
                 Menu menu = menuMapper.selectById(fileDTO.getMenuId());
                 file.setDisplayPath(menu.getDisplayPath() + "/" + fileDTO.getFileName());
             } else {
-                file.setDisplayPath("/" + file.getFileName());
+                file.setDisplayPath("/" + fileDTO.getFileName());
             }
             file.setFileName(fileDTO.getFileName());
             file.setFileType(fileDTO.getFileType());
@@ -115,6 +115,7 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
             file.setFileSize(fileDTO.getFileSize());
             file.setIdentifier(fileDTO.getIdentifier());
             file.setSource(fileDTO.getSource());
+            file.setBoundMenuId(fileDTO.getBoundMenuId());
             Integer storageCode = StoreTypeEnum.getCodeByDesc(storageType);
             file.setStorageType(storageCode);
             int insert = baseMapper.insert(file);

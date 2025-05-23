@@ -11,6 +11,8 @@ public class FileConflictVO {
     /**
      * 1: 新增
      * 2: 删除
+     * 3: 修改
      */
     private Integer type;
+    private String oldName;
 }

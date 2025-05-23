@@ -3,24 +3,24 @@ package com.xiaohe.pan.client.service;
 import com.alibaba.fastjson.JSON;
 
 import com.alibaba.fastjson.TypeReference;
-import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
 import com.xiaohe.pan.client.config.ClientConfig;
 import com.xiaohe.pan.client.event.EventContainer;
 import com.xiaohe.pan.client.http.HttpClientManager;
 import com.xiaohe.pan.client.listener.FileListenerMonitor;
 import com.xiaohe.pan.client.model.BoundDirectory;
 import com.xiaohe.pan.client.model.Event;
-import com.xiaohe.pan.client.model.vo.DeviceHeartbeatVO;
 import com.xiaohe.pan.common.model.dto.EventDTO;
 import com.xiaohe.pan.common.model.dto.EventsDTO;
 import com.xiaohe.pan.common.model.dto.MergeEvent;
 import com.xiaohe.pan.common.util.FileUtils;
 import com.xiaohe.pan.common.util.Result;
 import org.apache.commons.collections4.CollectionUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -106,6 +106,7 @@ public class FileSyncService {
         String jsonData = JSON.toJSONString(eventsDTO);
 
         // 发送请求，使用普通的POST请求，因为文件已经包含在JSON中
+        System.out.println(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME) + " 进行同步");
         String resp = httpClient.post("/bound/sync", jsonData);
         System.out.println("批量同步响应: " + resp);
         eventContainer.cleanMergedEvents();
@@ -127,17 +128,52 @@ public class FileSyncService {
     private void mergedEvents() {
         // 从服务端获取需要处理的合并事件
         try {
-            List<MergeEvent> mergeEventList = fetchMergeEventsFromServer();
-            if (CollectionUtils.isEmpty(mergeEventList)) {
-                System.out.println("没有需要处理的合并事件");
+            System.out.println(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME) + " 拉取合并事件");
+            List<MergeEvent> events = fetchMergeEventsFromServer();
+            if (CollectionUtils.isEmpty(events)) {
+                System.out.println(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME) + " 没有需要处理的合并事件");
                 return;
             }
             // 把 localBoundMenuPath 中的 \\ 替换为 /
-            mergeEventList.forEach(mergeEvent -> mergeEvent.setLocalBoundMenuPath(normalizePathSeparator(mergeEvent.getLocalBoundMenuPath())));
-            // 处理目录事件（按路径深度排序）
-            processEventsByType(mergeEventList, 1);
-            // 处理文件事件（按路径深度排序）
-            processEventsByType(mergeEventList, 2);
+            events.forEach(mergeEvent -> mergeEvent.setLocalBoundMenuPath(normalizePathSeparator(mergeEvent.getLocalBoundMenuPath())));
+            // 按本地绑定目录分组
+            Map<String, List<MergeEvent>> dirGroups = events.stream()
+                    .collect(Collectors.groupingBy(e -> {
+                        // 计算本地根目录：localBoundMenuPath + (remoteMenuPath - remoteBoundMenuPath)
+                        return calculateLocalPath(
+                                e.getLocalBoundMenuPath(),
+                                e.getRemoteBoundMenuPath(),
+                                e.getRemoteMenuPath(),
+                                ""
+                        );
+                    }));
+            dirGroups.forEach((localDir, eventList) -> {
+                // 暴力清除目录
+                File targetDir = new File(localDir);
+                if (targetDir.exists()) {
+                    deleteRecursive(targetDir);
+                }
+                targetDir.mkdirs();
+
+                // 批量创建新内容
+                eventList.forEach(event -> {
+                    String fullPath = calculateLocalPath(
+                            event.getLocalBoundMenuPath(),
+                            event.getRemoteBoundMenuPath(),
+                            event.getRemoteMenuPath(),
+                            event.getFilename()
+                    );
+                    if (event.getFileType() == 1) { // 目录
+                        new File(fullPath).mkdirs();
+                    } else { // 文件
+                        try {
+                            Files.write(Paths.get(fullPath), event.getData());
+                        } catch (IOException e) {
+                            System.out.println("文件创建失败：" + fullPath);
+                        }
+                    }
+                });
+            });
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -163,67 +199,64 @@ public class FileSyncService {
         }
         return result.getData();
     }
-    private void processEventsByType(List<MergeEvent> events, int fileType) {
-        events.stream()
-                .filter(e -> e.getFileType() == fileType)
-                .sorted(this::compareByPathDepth)
-                .forEach(this::handleSingleEvent);
-    }
-    // 根据路径深度排序，越浅的路径越先处理
-    private int compareByPathDepth(MergeEvent e1, MergeEvent e2) {
-        return Integer.compare(
-                e1.getLocalBoundMenuPath().split("/").length,
-                e2.getLocalBoundMenuPath().split("/").length
-        );
-    }
-    private void handleSingleEvent(MergeEvent mergeEvent) {
-        String targetPath = calculateLocalPath(
-                mergeEvent.getLocalBoundMenuPath(),
-                mergeEvent.getRemoteBoundMenuPath(),
-                mergeEvent.getRemoteMenuPath(),
-                mergeEvent.getFilename()
-        );
-        eventContainer.addMergedEvent(targetPath);
-        File targetFile = new File(targetPath);
-        try {
-            // 1. 创建
-            if (mergeEvent.getType() == 1) {
-                // 1.1 目录
-                if (mergeEvent.getFileType() == 1) {
-                    targetFile.mkdirs();
-                } else {
-                    // 1.2 文件
-                    if (targetFile.exists()) {
-                        targetFile.delete();
-                    }
-                    ByteInputStream byteInputStream = new ByteInputStream(mergeEvent.getData(), mergeEvent.getData().length);
-                    try {
-                        FileUtils.writeStream2File(byteInputStream, targetFile, (long) mergeEvent.getData().length);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            // 2. 删除
-            else if (mergeEvent.getType() == 2) {
-                // 不管文件还是目录直接删
-                if (targetFile.exists()) {
-                    Files.delete(targetFile.toPath());
-                }
-            }
-            // 3. 修改
-            else if (mergeEvent.getType() == 3) {
-                // 只提供修改名称功能
-                if (!mergeEvent.getOldFileName().equals(mergeEvent.getFilename()) && targetFile.exists()) {
-                    targetFile = new File(mergeEvent.getOldFileName());
-                    File renameTo = new File(mergeEvent.getFilename());
-                    targetFile.renameTo(renameTo);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+//    private void processEventsByType(List<MergeEvent> events, int fileType) {
+//
+//    }
+//    // 根据路径深度排序，越浅的路径越先处理
+//    private int compareByPathDepth(MergeEvent e1, MergeEvent e2) {
+//        return Integer.compare(
+//                e1.getLocalBoundMenuPath().split("/").length,
+//                e2.getLocalBoundMenuPath().split("/").length
+//        );
+//    }
+//    private void handleSingleEvent(MergeEvent mergeEvent) {
+//        String targetPath = calculateLocalPath(
+//                mergeEvent.getLocalBoundMenuPath(),
+//                mergeEvent.getRemoteBoundMenuPath(),
+//                mergeEvent.getRemoteMenuPath(),
+//                mergeEvent.getFilename()
+//        );
+//        eventContainer.addMergedEvent(targetPath);
+//        File targetFile = new File(targetPath);
+//        try {
+//            // 1. 创建
+//            if (mergeEvent.getType() == 1) {
+//                // 1.1 目录
+//                if (mergeEvent.getFileType() == 1) {
+//                    targetFile.mkdirs();
+//                } else {
+//                    // 1.2 文件
+//                    if (targetFile.exists()) {
+//                        targetFile.delete();
+//                    }
+//                    ByteInputStream byteInputStream = new ByteInputStream(mergeEvent.getData(), mergeEvent.getData().length);
+//                    try {
+//                        FileUtils.writeStream2File(byteInputStream, targetFile, (long) mergeEvent.getData().length);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//            }
+//            // 2. 删除
+//            else if (mergeEvent.getType() == 2) {
+//                // 不管文件还是目录直接删
+//                if (targetFile.exists()) {
+//                    Files.delete(targetFile.toPath());
+//                }
+//            }
+//            // 3. 修改
+//            else if (mergeEvent.getType() == 3) {
+//                // 只提供修改名称功能
+//                if (!mergeEvent.getOldFileName().equals(mergeEvent.getFilename()) && targetFile.exists()) {
+//                    targetFile = new File(mergeEvent.getOldFileName());
+//                    File renameTo = new File(mergeEvent.getFilename());
+//                    targetFile.renameTo(renameTo);
+//                }
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
 
     private String calculateLocalPath(String localBoundMenuPath, String remoteBoundMenuPath, String remoteMenuPath, String filename) {
@@ -251,15 +284,14 @@ public class FileSyncService {
                 relativePath = remoteMenuPath.substring(startIndex);
             }
         }
-
         // 构建完整本地路径
         String fullLocalPath;
+        String a = filename.isEmpty() ? "" : "/" + filename;
         if (relativePath.isEmpty()) {
-            fullLocalPath = normalizedLocalBoundPath + "/" + filename;
+            fullLocalPath = normalizedLocalBoundPath + a;
         } else {
-            fullLocalPath = normalizedLocalBoundPath + "/" + relativePath + "/" + filename;
+            fullLocalPath = normalizedLocalBoundPath + "/" + relativePath + a;
         }
-
         return fullLocalPath;
     }
 
@@ -270,7 +302,18 @@ public class FileSyncService {
         // 将所有反斜杠替换为正斜杠，然后再处理
         return path.replace('\\', '/');
     }
-
+    // 递归删除目录
+    private void deleteRecursive(File file) {
+        if (file.isDirectory()) {
+            File[] entries = file.listFiles();
+            if (entries != null) {
+                for (File entry : entries) {
+                    deleteRecursive(entry);
+                }
+            }
+        }
+        file.delete();
+    }
     public void shutdown() throws Exception {
         monitor.stop();
         scheduler.shutdown();

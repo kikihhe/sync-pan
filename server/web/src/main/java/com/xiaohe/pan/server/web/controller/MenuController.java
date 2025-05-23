@@ -3,6 +3,7 @@ package com.xiaohe.pan.server.web.controller;
 import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.convert.MenuConvert;
+import com.xiaohe.pan.server.web.core.queue.ConflictMap;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.MenuTreeDTO;
@@ -41,6 +42,9 @@ public class MenuController {
     @Autowired
     private MenuUtil menuUtil;
 
+    @Autowired
+    private ConflictMap conflictMap;
+
 
     /**
      * 添加目录
@@ -56,12 +60,16 @@ public class MenuController {
         if (nameDuplicate) {
             return Result.error("目录名重复!");
         }
+        Menu parentMenu = new Menu();
         if (!Objects.isNull(menu.getParentId())) {
-            Menu parentMenu = menuService.getById(menu.getParentId());
+            parentMenu = menuService.getById(menu.getParentId());
             menu.setDisplayPath(parentMenu.getDisplayPath() + "/" + menu.getMenuName());
             menu.setBound(parentMenu.getBound());
         } else {
             menu.setDisplayPath("/" + menu.getMenuName());
+        }
+        if (parentMenu.getBound() != null && parentMenu.getBound() == true) {
+            menu.setBoundMenuId(parentMenu.getBoundMenuId());
         }
         boolean save = menuService.save(menu);
         if (!save) {
@@ -81,9 +89,14 @@ public class MenuController {
         if (nameDuplicate) {
             return Result.error("目录名称重复");
         }
+        Menu oldMenu = menuService.getById(menu.getId());
+        menu.setSource(1);
+        menu.setDisplayPath(oldMenu.getDisplayPath().substring(oldMenu.getDisplayPath().lastIndexOf("/") + 1) + "/" + menu.getMenuName());
         boolean b = menuService.updateById(menu);
         if (!b) {
             return Result.error("修改失败");
+        } else {
+            conflictMap.addMenuConflict(menu, oldMenu.getMenuName(), 3);
         }
         return Result.success("修改成功");
     }
@@ -102,6 +115,7 @@ public class MenuController {
             throw new BusinessException("目录不存在");
         }
         menuService.deleteMenu(menuId, userId);
+        conflictMap.addMenuConflict(menu, null, 2);
         return Result.success("删除成功");
     }
 

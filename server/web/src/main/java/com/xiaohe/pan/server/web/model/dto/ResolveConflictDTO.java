@@ -13,10 +13,11 @@ public class ResolveConflictDTO {
      */
     private Long currentMenuId;
 
+    private Menu currentMenu;
+
     private List<Menu> menuItems;
 
     private List<File> fileItems;
-
 }
 
 

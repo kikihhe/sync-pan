@@ -9,9 +9,11 @@ import java.util.List;
 @Accessors(chain = true)
 public class MenuConflictVO {
     private Menu menu;
+    private String oldName;
     /**
      * 1: 新增
      * 2: 删除
+     * 3: 修改
      */
     private Integer type;
     private List<FileConflictVO> subFileList;

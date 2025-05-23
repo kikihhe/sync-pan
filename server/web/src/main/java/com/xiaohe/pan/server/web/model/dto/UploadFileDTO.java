@@ -13,7 +13,6 @@ public class UploadFileDTO {
     private Long menuId;
     private String identifier;
     private Integer source;
+    private Long boundMenuId;
     private MultipartFile multipartFile;
-//    private List<Long> fileIdList;
-//    private List<Long> menuIdList;
 }

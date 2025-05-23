@@ -2,8 +2,6 @@ package com.xiaohe.pan.common.model.dto;
 
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 @Data
 public class MergeEvent {
     /**
@@ -25,20 +23,18 @@ public class MergeEvent {
     private String localBoundMenuPath;
 
     /**
+     * 解决冲突所在的远端目录路径
+     */
+    private String resolveRemotePath;
+    private String resolveLocalPath;
+
+    /**
      * 文件/目录 的名称
      * 云端全路径: remoteMenuPath + filename
      * 本地全路径: localBoundMenuPath + (remoteMenuPath - boundMenuPath) + filename
      */
     private String filename;
 
-    /**
-     * 1: 增
-     * 2: 删
-     * 3: 修改
-     */
-    private Integer type;
-    // 如果事件是修改，旧的文件名
-    private String oldFileName;
     /**
      * 1: menu
      * 2: file
@@ -49,11 +45,6 @@ public class MergeEvent {
      * 如果是文件，则填充内容
      */
     private byte[] data;
-
-    /**
-     * 事件发生时间
-     */
-    private LocalDateTime createTime;
 
     /**
      * 获取云端的绝对路径

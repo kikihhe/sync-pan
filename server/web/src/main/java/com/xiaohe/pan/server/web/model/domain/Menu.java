@@ -60,6 +60,11 @@ public class Menu extends BaseDomain {
      */
     private Boolean bound;
     /**
+     * 该文件所属的顶级同步目录id
+     */
+    private Long boundMenuId;
+
+    /**
      * 目录来源
      * 1: 云端
      * 2: 本地

@@ -39,4 +39,12 @@ public enum DeviceStatus {
         }
         return null;
     }
+    public static String getDescByCode(Integer code) {
+        for (DeviceStatus deviceStatus : DeviceStatus.values()) {
+            if (deviceStatus.getCode().equals(code)) {
+                return deviceStatus.getDesc();
+            }
+        }
+        return "";
+    }
 }

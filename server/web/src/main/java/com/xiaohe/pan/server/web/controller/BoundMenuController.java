@@ -7,10 +7,12 @@ import com.xiaohe.pan.common.model.dto.EventsDTO;
 import com.xiaohe.pan.common.model.dto.MergeEvent;
 import com.xiaohe.pan.common.model.vo.EventVO;
 import com.xiaohe.pan.common.util.Result;
+import com.xiaohe.pan.server.web.core.queue.ConflictMap;
 import com.xiaohe.pan.server.web.core.queue.MergeEventQueue;
 import com.xiaohe.pan.server.web.enums.DeviceStatus;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.domain.Device;
+import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.ResolveConflictDTO;
 import com.xiaohe.pan.server.web.model.vo.BoundMenuVO;
@@ -18,11 +20,15 @@ import com.xiaohe.pan.server.web.model.vo.ConflictVO;
 import com.xiaohe.pan.server.web.model.vo.ResolvedConflictVO;
 import com.xiaohe.pan.server.web.service.BoundMenuService;
 import com.xiaohe.pan.server.web.service.DeviceService;
+import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.service.MenuService;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
+import com.xiaohe.pan.storage.api.StorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
@@ -51,11 +57,17 @@ public class BoundMenuController {
 
     @Resource
     private MergeEventQueue mergeEventQueue;
+    @Autowired
+    private ConflictMap conflictMap;
+    @Resource
+    private StorageService storageService;
+    @Autowired
+    private FileService fileService;
 
 
     @PostMapping("/createBinding")
     public Result<BoundMenu> createBinding(@RequestBody BoundMenu request) throws JsonProcessingException {
-        if (request.getRemoteMenuId() == null) {
+        if (request.getRemoteMenuId() == null && !StringUtils.hasText(request.getRemoteMenuPath())) {
             return Result.error("文件不存在，或者权限不足(禁止绑定顶级目录)");
         }
         Long userId = SecurityContextUtil.getCurrentUserId();
@@ -95,7 +107,7 @@ public class BoundMenuController {
                 eventsDTO.getSecret()
         );
         // 检查设备状态
-        if (device.getStatus() != 0) {
+        if (device.getStatus() != 1) {
             return Result.error("设备状态异常: 设备" + DeviceStatus.getByCode(device.getStatus()).getDesc());
         }
 
@@ -103,6 +115,13 @@ public class BoundMenuController {
 
         return Result.success("同步成功", eventVOList);
     }
+
+    /**
+     * 在 checkConflict 时，这个放在中间，展示“已经被解决了”
+     * @param menuId
+     * @return
+     * @throws IOException
+     */
     @PostMapping("/getResolvedConflict")
     public Result<ResolvedConflictVO> getResolvedConflict(@RequestParam Long menuId) throws IOException {
         Long userId = SecurityContextUtil.getCurrentUser().getId();
@@ -135,6 +154,25 @@ public class BoundMenuController {
             return Result.error("目录未绑定");
         }
         List<ConflictVO> conflictList =  menuService.checkConflict(menu);
+        // 新增冲突合并逻辑
+        if (!conflictList.isEmpty()) {
+            // 获取冲突地图中的冲突
+            ConflictVO mapConflicts = conflictMap.getAllConflicts(menu.getDisplayPath());
+
+            // 处理本地冲突（index 0）
+            ConflictVO localConflict = conflictList.get(0);
+            filterConflicts(localConflict, mapConflicts);
+
+            // 处理云端冲突（index 1）
+            if (conflictList.size() > 1) {
+                ConflictVO cloudConflict = conflictList.get(1);
+                mergeConflicts(cloudConflict, mapConflicts);
+            }
+
+            // 添加新冲突到云端
+            conflictList.add(mapConflicts);
+        }
+
         return Result.success(conflictList);
     }
 
@@ -162,10 +200,86 @@ public class BoundMenuController {
             return Result.result(505, "设备 " + deviceKey + " 未注册或密钥错误", null);
         }
 //        logger.info("收到来自 deviceKey=" + deviceKey + "的心跳请求");
-        deviceService.verifySecret(deviceKey, secret);
-        List<MergeEvent> mergeEvents = mergeEventQueue.pollAllEvents();
+        Device device = deviceService.verifySecret(deviceKey, secret);
+        // 转为 MergeEvent 并返回
+        List<ResolveConflictDTO> resolveConflictDTOS = mergeEventQueue.pollResolveConflict(deviceKey);
+        if (CollectionUtils.isEmpty(resolveConflictDTOS)) {
+            return Result.success();
+        }
+        // 这台设备上所有的绑定目录
+        List<BoundMenu> allBoundMenuList = boundMenuService.lambdaQuery().eq(BoundMenu::getDeviceId, device.getId()).list();
+        if (CollectionUtils.isEmpty(allBoundMenuList)) {
+            return Result.success();
+        }
+        List<Long> allBoundMenuIDList = allBoundMenuList.stream().map(BoundMenu::getId).collect(Collectors.toList());
+
+        List<MergeEvent> mergeEvents = new ArrayList<>();
+        Map<Long, BoundMenu> idToBoundMenuMap = allBoundMenuList.stream().collect(Collectors.toMap(BoundMenu::getId, boundMenu -> boundMenu));
+        resolveConflictDTOS.forEach(resolveConflictDTO -> {
+            Menu currentMenu = resolveConflictDTO.getCurrentMenu();
+            List<File> fileItems = resolveConflictDTO.getFileItems().stream().filter(i -> allBoundMenuIDList.contains(i.getBoundMenuId())).collect(Collectors.toList());
+            List<Menu> menuItems = resolveConflictDTO.getMenuItems().stream().filter(i -> allBoundMenuIDList.contains(i.getBoundMenuId())).collect(Collectors.toList());
+            fileItems.forEach(fileItem -> {
+                BoundMenu boundMenu = idToBoundMenuMap.get(fileItem.getBoundMenuId());
+                MergeEvent mergeEvent = new MergeEvent();
+                mergeEvent.setLocalBoundMenuPath(boundMenu.getLocalPath());
+                mergeEvent.setRemoteBoundMenuPath(boundMenu.getRemoteMenuPath());
+                mergeEvent.setFilename(fileItem.getFileName());
+                String remoteMenuPath = fileItem.getDisplayPath().substring(fileItem.getDisplayPath().lastIndexOf("/") + 1);
+                mergeEvent.setFileType(2);
+                mergeEvent.setResolveRemotePath(currentMenu.getDisplayPath());
+                mergeEvent.setRemoteMenuPath(remoteMenuPath);
+                try {
+                    byte[] bytes = fileService.readFile(fileItem);
+                    mergeEvent.setData(bytes);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                mergeEvents.add(mergeEvent);
+            });
+            menuItems.forEach(menuItem -> {
+                BoundMenu boundMenu = idToBoundMenuMap.get(menuItem.getBoundMenuId());
+                MergeEvent mergeEvent = new MergeEvent();
+                mergeEvent.setLocalBoundMenuPath(boundMenu.getLocalPath());
+                mergeEvent.setRemoteBoundMenuPath(boundMenu.getRemoteMenuPath());
+                mergeEvent.setFilename(menuItem.getMenuName());
+                mergeEvent.setFileType(1);
+                String remoteMenuPath = menuItem.getDisplayPath().substring(menuItem.getDisplayPath().lastIndexOf("/") + 1);
+                mergeEvent.setRemoteMenuPath(remoteMenuPath);
+                mergeEvent.setResolveRemotePath(currentMenu.getDisplayPath());
+                mergeEvents.add(mergeEvent);
+            });
+        });
         return Result.success(mergeEvents);
     }
 
 
+    // 过滤本地冲突中已存在冲突条目
+    private void filterConflicts(ConflictVO target, ConflictVO mapConflicts) {
+        target.getFileConflictVOList().removeIf(f ->
+                mapConflicts.getFileConflictVOList().stream()
+                        .anyMatch(mf -> mf.getFile().getDisplayPath().equals(f.getFile().getDisplayPath()))
+        );
+        target.getMenuConflictVOList().removeIf(m ->
+                mapConflicts.getMenuConflictVOList().stream()
+                        .anyMatch(mm -> mm.getMenu().getDisplayPath().equals(m.getMenu().getDisplayPath()))
+        );
+    }
+
+    // 合并冲突到云端冲突（以map数据为准）
+    private void mergeConflicts(ConflictVO target, ConflictVO mapConflicts) {
+        // 合并文件冲突
+        mapConflicts.getFileConflictVOList().forEach(mf -> {
+            target.getFileConflictVOList().removeIf(f ->
+                    f.getFile().getDisplayPath().equals(mf.getFile().getDisplayPath()));
+            target.getFileConflictVOList().add(mf);
+        });
+
+        // 合并目录冲突
+        mapConflicts.getMenuConflictVOList().forEach(mm -> {
+            target.getMenuConflictVOList().removeIf(m ->
+                    m.getMenu().getDisplayPath().equals(mm.getMenu().getDisplayPath()));
+            target.getMenuConflictVOList().add(mm);
+        });
+    }
 }

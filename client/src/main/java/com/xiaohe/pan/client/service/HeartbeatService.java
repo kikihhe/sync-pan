@@ -48,7 +48,7 @@ public class HeartbeatService {
             map.put("deviceKey", ClientConfig.getDeviceKey());
             map.put("secret", ClientConfig.getSecret());
 
-            System.out.println("发送心跳" + LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME));
+            System.out.println(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME) + " 发送心跳");
             String response = httpClient.post("/device/heartbeat", map, "");
 
             Result<DeviceHeartbeatVO> result = JSON.parseObject(
