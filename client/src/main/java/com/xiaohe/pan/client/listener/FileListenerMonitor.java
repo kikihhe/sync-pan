@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import com.xiaohe.pan.client.model.BoundDirectory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.*;
@@ -121,5 +123,9 @@ public class FileListenerMonitor {
             }
         }
         return null;
+    }
+
+    public List<String> getAllBoundDirectoryRemotePath() {
+        return boundDirectories.stream().map(BoundDirectory::getRemote).collect(Collectors.toList());
     }
 }

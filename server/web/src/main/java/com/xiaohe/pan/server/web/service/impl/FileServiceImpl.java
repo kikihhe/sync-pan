@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiaohe.pan.common.exceptions.BusinessException;
+import com.xiaohe.pan.common.util.FileUtils;
 import com.xiaohe.pan.common.util.PageQuery;
 import com.xiaohe.pan.common.util.PageVO;
 import com.xiaohe.pan.server.web.constants.FileConstants;
@@ -12,6 +13,7 @@ import com.xiaohe.pan.server.web.mapper.FileMapper;
 import com.xiaohe.pan.server.web.mapper.MenuMapper;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.Menu;
+import com.xiaohe.pan.server.web.model.domain.User;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.util.HttpUtil;
@@ -101,19 +103,21 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
 
             // 2. 保存文件的真实路径与展示路径/用户的联系（入库）
 //            file = FileConvert.INSTANCE.uploadDTOConvertTOFile(fileDTO);
+            Menu menu = new Menu();
             if (!Objects.isNull(fileDTO.getMenuId())) {
-                Menu menu = menuMapper.selectById(fileDTO.getMenuId());
+                menu = menuMapper.selectById(fileDTO.getMenuId());
                 file.setDisplayPath(menu.getDisplayPath() + "/" + fileDTO.getFileName());
             } else {
                 file.setDisplayPath("/" + fileDTO.getFileName());
             }
+            Long userId = SecurityContextUtil.getCurrentUser() == null ? menu.getOwner() : SecurityContextUtil.getCurrentUser().getId();
             file.setFileName(fileDTO.getFileName());
             file.setFileType(fileDTO.getFileType());
             file.setMenuId(fileDTO.getMenuId());
-            file.setOwner(SecurityContextUtil.getCurrentUser().getId());
+            file.setOwner(userId);
             file.setRealPath(storeFileContext.getRealPath());
             file.setFileSize(fileDTO.getFileSize());
-            file.setIdentifier(fileDTO.getIdentifier());
+            file.setIdentifier(FileUtils.calculateFileMD5(fileDTO.getMultipartFile().getBytes()));
             file.setSource(fileDTO.getSource());
             file.setBoundMenuId(fileDTO.getBoundMenuId());
             Integer storageCode = StoreTypeEnum.getCodeByDesc(storageType);

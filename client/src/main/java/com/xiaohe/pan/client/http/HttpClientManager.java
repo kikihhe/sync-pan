@@ -105,6 +105,8 @@ public class HttpClientManager {
             throws IOException {
         String fullUrl = SERVER_BASE_URL + buildUrlWithParams(url, params);
         HttpPost httpPost = new HttpPost(fullUrl);
+        Map<String, String> stringStringMap = generateDefaultHeaders();
+        stringStringMap.putAll(headers);
         addHeaders(httpPost, headers);
 
         if (body != null) {

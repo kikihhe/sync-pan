@@ -20,6 +20,7 @@ import com.xiaohe.pan.storage.api.StoreTypeEnum;
 import com.xiaohe.pan.storage.api.context.DeleteFileContext;
 import com.xiaohe.pan.storage.api.context.MergeFileContext;
 import com.xiaohe.pan.storage.api.context.StoreFileChunkContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +37,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class FileChunkServiceImpl extends ServiceImpl<FileChunkMapper, FileChunk> implements FileChunkService {
 
     @Resource
@@ -65,6 +67,7 @@ public class FileChunkServiceImpl extends ServiceImpl<FileChunkMapper, FileChunk
         FileChunk one = getOne(lambda);
         if (!Objects.isNull(one)) {
             // 已经上传过，不再上传
+            log.info("分片 " + chunkFileDTO.getChunkName() + " 已经上传过，不再上传");
             return false;
         }
         lambda.clear();

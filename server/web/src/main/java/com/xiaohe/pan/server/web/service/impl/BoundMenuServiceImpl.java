@@ -8,6 +8,7 @@ import com.xiaohe.pan.common.model.dto.EventDTO;
 import com.xiaohe.pan.common.model.dto.EventsDTO;
 import com.xiaohe.pan.common.model.dto.MergeEvent;
 import com.xiaohe.pan.common.model.vo.EventVO;
+import com.xiaohe.pan.common.util.FileUtils;
 import com.xiaohe.pan.common.util.MD5Util;
 import com.xiaohe.pan.server.web.convert.BoundMenuConvert;
 import com.xiaohe.pan.server.web.core.queue.BindingEventQueue;
@@ -28,13 +29,18 @@ import com.xiaohe.pan.server.web.model.vo.ResolvedConflictVO;
 import com.xiaohe.pan.server.web.service.BoundMenuService;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.service.MenuService;
+import com.xiaohe.pan.server.web.util.MenuUtil;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
+import com.xiaohe.pan.storage.api.StorageService;
+import com.xiaohe.pan.storage.api.context.StoreFileContext;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -54,6 +60,10 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
 
     @Resource
     private FileService fileService;
+    @Resource
+    private StorageService storageService;
+    @Autowired
+    private MenuUtil menuUtil;
 
     @Override
     public BoundMenu createBinding(Long userId, BoundMenu request) throws RuntimeException {
@@ -487,7 +497,10 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
                     break;
                 case FILE_MODIFY:
                     // 修改文件
-
+                    eventVO = fileModifyEvent(boundRecord, boundMenu, eventDTO);
+                    if (Objects.nonNull(eventVO)) {
+                        eventVOList.add(eventVO);
+                    }
                     break;
                 case FILE_DELETE:
                     // 删除文件
@@ -499,8 +512,10 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         return eventVOList;
     }
 
+
+
     private String calculateFileMD5(byte[] fileData) {
-        return MD5Util.calculateMD5FromBytes(fileData);
+        return FileUtils.calculateFileMD5(fileData);
     }
 
     /**
@@ -571,6 +586,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
             menu.setBoundMenuId(parent.getBoundMenuId());
             menuService.updateById(menu);
         }
+        menuUtil.onAddMenu(menu.getId(), parent == null ? null : parent.getId());
         return buildEventVO(eventDTO, calculatedRemotePath);
     }
 
@@ -582,18 +598,53 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         // 计算本地的目录映射的云端路径
         String calculatedRemotePath = calculateRemotePath(localBoundMenuPath, remoteMenuPath, eventDTO.getLocalPath());
         menuService.deleteMenuByPath(calculatedRemotePath);
-
         return buildEventVO(eventDTO, calculatedRemotePath);
     }
 
+    private EventVO fileModifyEvent(BoundMenu boundRecord, Menu boundMenu, EventDTO eventDTO) throws IOException {
+        String localBoundMenuPath = boundRecord.getLocalPath();
+        String remoteMenuPath = boundRecord.getRemoteMenuPath();
+        String calculatedRemotePath = calculateRemotePath(localBoundMenuPath, remoteMenuPath, eventDTO.getLocalPath());
+        File existsFile = fileService.lambdaQuery().eq(File::getDisplayPath, calculatedRemotePath).one();
+        if (existsFile == null) {
+            return fileCreateEvent(boundRecord, boundMenu, eventDTO);
+        }
+        fileService.deleteFile(Arrays.asList(existsFile.getId()));
+        UploadFileDTO uploadFileDTO = new UploadFileDTO();
+        uploadFileDTO.setFileName(existsFile.getFileName());
+        uploadFileDTO.setFileType(existsFile.getFileType());
+        uploadFileDTO.setFileSize((long) eventDTO.getData().length);
+        uploadFileDTO.setMenuId(existsFile.getMenuId());
+        uploadFileDTO.setBoundMenuId(existsFile.getBoundMenuId());
+        uploadFileDTO.setIdentifier(FileUtils.calculateFileMD5(eventDTO.getData()));
+        uploadFileDTO.setSource(2);
+        // 保存真实文件
+        StoreFileContext storeFileContext = new StoreFileContext()
+                .setFilename(existsFile.getFileName())
+                .setTotalSize((long) eventDTO.getData().length)
+                .setInputStream(new ByteInputStream(eventDTO.getData(), eventDTO.getData().length));
+        storageService.store(storeFileContext);
+        File newFile = new File();
+        BeanUtils.copyProperties(existsFile, newFile);
+        newFile.setId(null);
+        newFile.setIdentifier(uploadFileDTO.getIdentifier());
+        newFile.setRealPath(storeFileContext.getRealPath());
+        newFile.setDisplayPath(calculatedRemotePath);
+        newFile.setSource(2);
+        newFile.setFileSize((long) eventDTO.getData().length);
+        newFile.setDeleted(false);
+        fileService.save(newFile);
+        menuUtil.onAddFile(newFile.getMenuId(), newFile.getFileSize());
+        return buildEventVO(eventDTO, calculatedRemotePath);
+    }
     private EventVO fileCreateEvent(BoundMenu boundRecord, Menu boundMenu, EventDTO eventDTO) throws IOException {
         // 与云端绑定的本地的顶级目录
         String localBoundMenuPath = boundRecord.getLocalPath();
         String remoteMenuPath = boundRecord.getRemoteMenuPath();
         String calculatedRemotePath = calculateRemotePath(localBoundMenuPath, remoteMenuPath, eventDTO.getLocalPath());
-        // 文件已存在
+        // 文件已存在,并且内容相同
         File existsFile = fileService.lambdaQuery().eq(File::getDisplayPath, calculatedRemotePath).one();
-        if (existsFile != null) {
+        if (existsFile != null && existsFile.getIdentifier().equals(FileUtils.calculateFileMD5(eventDTO.getData()))) {
             return null;
         }
         String fileName = calculatedRemotePath.substring(calculatedRemotePath.lastIndexOf("/") + 1);
@@ -617,7 +668,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         uploadFileDTO.setBoundMenuId(menu.getBoundMenuId());
         uploadFileDTO.setFileSize((long) (eventDTO.getData().length));
         uploadFileDTO.setFileType(fileName.substring(fileName.lastIndexOf(".") + 1));
-        uploadFileDTO.setIdentifier(calculateFileMD5(eventDTO.getData()));
+        uploadFileDTO.setIdentifier(FileUtils.calculateFileMD5(eventDTO.getData()));
         uploadFileDTO.setSource(2); // 本地同步过来的
         ByteInputStream bis = new ByteInputStream(eventDTO.getData(), eventDTO.getData().length);
         fileService.uploadFile(bis, uploadFileDTO);

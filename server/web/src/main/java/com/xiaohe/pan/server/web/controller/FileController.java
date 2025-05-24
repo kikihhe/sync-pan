@@ -2,6 +2,7 @@ package com.xiaohe.pan.server.web.controller;
 
 import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.common.model.dto.MergeEvent;
+import com.xiaohe.pan.common.util.FileUtils;
 import com.xiaohe.pan.common.util.PageQuery;
 import com.xiaohe.pan.common.util.PageVO;
 import com.xiaohe.pan.common.util.Result;
@@ -137,7 +138,7 @@ public class FileController {
         File rawFile = new File();
         BeanUtils.copyProperties(file, rawFile);
         rawFile.setSource(1);
-        rawFile.setDisplayPath(byId.getDisplayPath().substring(byId.getDisplayPath().lastIndexOf("/") + 1) + "/" + file.getFileName());
+        rawFile.setDisplayPath(FileUtils.getNewDisplayPath(byId.getDisplayPath(), file.getFileName()));
         fileService.updateById(rawFile);
 //        if (menu != null && menu.getBound()) {
 //            BoundMenu boundMenu = boundMenuService.getBoundMenuByMenuId(menu.getId());

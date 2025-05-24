@@ -9,6 +9,7 @@ import com.xiaohe.pan.client.model.BoundMenu;
 import com.xiaohe.pan.client.model.BoundMenuEvent;
 import com.xiaohe.pan.client.model.vo.DeviceHeartbeatVO;
 import com.xiaohe.pan.client.storage.MD5StorageFactory;
+import com.xiaohe.pan.common.model.dto.HeartbeatDTO;
 import com.xiaohe.pan.common.util.Result;
 
 import java.io.IOException;
@@ -44,12 +45,15 @@ public class HeartbeatService {
 
     private void sendHeartbeat() {
         try {
-            Map<String, String> map = new HashMap<>();
-            map.put("deviceKey", ClientConfig.getDeviceKey());
-            map.put("secret", ClientConfig.getSecret());
+
+            List<String> boundDirectoryRemotePath = monitor.getAllBoundDirectoryRemotePath();
+            HeartbeatDTO heartbeatDTO = new HeartbeatDTO();
+            heartbeatDTO.setDeviceKey(ClientConfig.getDeviceKey());
+            heartbeatDTO.setSecret(ClientConfig.getSecret());
+            heartbeatDTO.setBoundDirectoryRemotePath(boundDirectoryRemotePath);
 
             System.out.println(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME) + " 发送心跳");
-            String response = httpClient.post("/device/heartbeat", map, "");
+            String response = httpClient.post("/device/heartbeat", JSON.toJSONString(heartbeatDTO));
 
             Result<DeviceHeartbeatVO> result = JSON.parseObject(
                     response,
@@ -68,9 +72,12 @@ public class HeartbeatService {
                 System.exit(1);
             }
             DeviceHeartbeatVO vo = result.getData();
-            System.out.println("心跳成功!");
+
             if (vo.getSyncCommand() == 1) {
+                System.out.println("心跳成功! 正在处理同步目录绑定事件");
                 processEvents(vo.getPendingBindings());
+            } else {
+                System.out.println("心跳成功! 没有同步目录绑定事件");
             }
         } catch (Exception e) {
             System.err.println("心跳发送失败: " + e.getMessage());

@@ -2,14 +2,17 @@ package com.xiaohe.pan.server.web.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xiaohe.pan.common.exceptions.BusinessException;
+import com.xiaohe.pan.common.model.dto.HeartbeatDTO;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.convert.DeviceConvert;
 import com.xiaohe.pan.server.web.enums.DeviceStatus;
+import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.domain.Device;
 import com.xiaohe.pan.server.web.model.domain.Secret;
 import com.xiaohe.pan.server.web.model.dto.DeviceHeartbeatDTO;
 import com.xiaohe.pan.server.web.model.vo.DeviceHeartbeatVO;
 import com.xiaohe.pan.server.web.model.vo.DeviceVO;
+import com.xiaohe.pan.server.web.service.BoundMenuService;
 import com.xiaohe.pan.server.web.service.DeviceService;
 import com.xiaohe.pan.server.web.service.SecretService;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
@@ -25,10 +28,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -42,6 +42,8 @@ public class DeviceController {
 
     @Autowired
     private SecretService secretService;
+    @Autowired
+    private BoundMenuService boundMenuService;
 
     @GetMapping("/getDeviceList")
     public Result<List<DeviceVO>> getDeviceList() {
@@ -63,9 +65,9 @@ public class DeviceController {
     }
 
     @PostMapping("/heartbeat")
-    public Result<DeviceHeartbeatVO> heartbeat(HttpServletRequest request) throws BusinessException {
-        String deviceKey = request.getHeader("deviceKey");
-        String secret = request.getHeader("secret");
+    public Result<DeviceHeartbeatVO> heartbeat(@RequestBody HeartbeatDTO heartbeatDTO) throws BusinessException {
+        String deviceKey = heartbeatDTO.getDeviceKey();
+        String secret = heartbeatDTO.getSecret();
         if (!StringUtils.hasText(deviceKey) || !StringUtils.hasText(secret)) {
             return Result.result(505, "设备 " + deviceKey + " 未注册或密钥错误", null);
         }
@@ -77,7 +79,7 @@ public class DeviceController {
         if (Objects.equals(device.getStatus(), DeviceStatus.DELETED.getCode())) {
             return Result.error(50002, "设备已经删除");
         }
-        return deviceService.processHeartbeat(device);
+        return deviceService.processHeartbeat(device, heartbeatDTO.getBoundDirectoryRemotePath());
     }
 
     @PostMapping("/registerDevice")

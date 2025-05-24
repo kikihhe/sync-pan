@@ -180,4 +180,13 @@ public class FileUtils {
         }
         return fileName.substring(indexOf + 1);
     }
+
+    public static String getNewDisplayPath(String displayPath, String newName) {
+        String parentPath = displayPath.substring(0, displayPath.lastIndexOf("/"));
+        return parentPath + "/" + newName;
+    }
+    public static String calculateFileMD5(byte[] fileData) {
+        return MD5Util.calculateMD5FromBytes(fileData);
+    }
+
 }

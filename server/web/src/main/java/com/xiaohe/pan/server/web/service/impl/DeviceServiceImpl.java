@@ -14,16 +14,18 @@ import com.xiaohe.pan.server.web.model.domain.Device;
 import com.xiaohe.pan.server.web.model.domain.Secret;
 import com.xiaohe.pan.server.web.model.event.BoundMenuEvent;
 import com.xiaohe.pan.server.web.model.vo.DeviceHeartbeatVO;
+import com.xiaohe.pan.server.web.service.BoundMenuService;
 import com.xiaohe.pan.server.web.service.DeviceService;
 import com.xiaohe.pan.server.web.util.CryptoUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -66,9 +68,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         }
         return device;
     }
+    @Autowired
+    private BoundMenuService boundMenuService;
 
     @Override
-    public Result<DeviceHeartbeatVO> processHeartbeat(Device device) throws BusinessException {
+    public Result<DeviceHeartbeatVO> processHeartbeat(Device device, List<String> boundedRemotePathList) throws BusinessException {
         // 更新心跳时间
         device.setLastHeartbeat(LocalDateTime.now());
         device.setStatus(DeviceStatus.HEALTH.getCode());
@@ -76,12 +80,43 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
         // 查看是否有绑定事件
         log.info("心跳开始查看事件");
-        List<BoundMenuEvent> boundMenus = bindingEventQueue.pollEvents(device.getDeviceKey());
+        List<BoundMenu> boundMenuList = boundMenuService.lambdaQuery().eq(BoundMenu::getDeviceId, device.getId()).list();
+        // 本地未绑定的
+        List<BoundMenu> unBoundedRemotePathList = boundMenuList.stream()
+                .filter(i -> !boundedRemotePathList.contains(i.getRemoteMenuPath()))
+                .collect(Collectors.toList());
+        // 在这边已经删除的
+        // 在boundedRemotePathList中存在，但是boundMenuList不存在的
+        // 需要删除的（客户端有但服务端没有的）
+        Map<String, BoundMenu> serverBoundMenuMap = boundMenuList.stream().collect(Collectors.toMap(BoundMenu::getRemoteMenuPath, m -> m));
+        List<BoundMenu> removedBoundRemotePath = new ArrayList<>();
+        for (String clientPath : boundedRemotePathList) {
+            if (!serverBoundMenuMap.containsKey(clientPath)) {
+                BoundMenu boundMenu = serverBoundMenuMap.get(clientPath);
+                removedBoundRemotePath.add(boundMenu);
+            }
+        }
         log.info("心跳结束查看事件");
 
+        // 组装
+        List<BoundMenuEvent> boundMenuEventList = new ArrayList<>();
+        // 绑定
+        for (BoundMenu boundMenu : unBoundedRemotePathList) {
+            BoundMenuEvent boundMenuEvent = new BoundMenuEvent();
+            boundMenuEvent.setBoundMenu(boundMenu);
+            boundMenuEvent.setType(1);
+            boundMenuEventList.add(boundMenuEvent);
+        }
+        // 解绑
+        for (BoundMenu boundMenu : removedBoundRemotePath) {
+            BoundMenuEvent boundMenuEvent = new BoundMenuEvent();
+            boundMenuEvent.setBoundMenu(boundMenu);
+            boundMenuEvent.setType(2);
+            boundMenuEventList.add(boundMenuEvent);
+        }
         DeviceHeartbeatVO vo = new DeviceHeartbeatVO();
-        vo.setPendingBindings(boundMenus);
-        vo.setSyncCommand(boundMenus.isEmpty() ? SyncCommandEnum.WAIT.getCode() : SyncCommandEnum.SYNC_NOW.getCode());
+        vo.setPendingBindings(boundMenuEventList);
+        vo.setSyncCommand(boundMenuEventList.isEmpty() ? SyncCommandEnum.WAIT.getCode() : SyncCommandEnum.SYNC_NOW.getCode());
         return Result.success(vo);
     }
 }

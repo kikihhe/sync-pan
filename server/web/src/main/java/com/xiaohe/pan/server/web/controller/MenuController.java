@@ -1,6 +1,7 @@
 package com.xiaohe.pan.server.web.controller;
 
 import com.xiaohe.pan.common.exceptions.BusinessException;
+import com.xiaohe.pan.common.util.FileUtils;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.convert.MenuConvert;
 import com.xiaohe.pan.server.web.core.queue.ConflictMap;
@@ -91,7 +92,7 @@ public class MenuController {
         }
         Menu oldMenu = menuService.getById(menu.getId());
         menu.setSource(1);
-        menu.setDisplayPath(oldMenu.getDisplayPath().substring(oldMenu.getDisplayPath().lastIndexOf("/") + 1) + "/" + menu.getMenuName());
+        menu.setDisplayPath(FileUtils.getNewDisplayPath(oldMenu.getDisplayPath(), menu.getMenuName()));
         boolean b = menuService.updateById(menu);
         if (!b) {
             return Result.error("修改失败");
