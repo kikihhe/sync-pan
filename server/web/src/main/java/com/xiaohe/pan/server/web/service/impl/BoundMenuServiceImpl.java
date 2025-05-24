@@ -118,11 +118,11 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         m.setBoundMenuId(boundMenu.getId());
         m.setBound(true);
         menuService.updateById(m);
-        BoundMenuEvent event = new BoundMenuEvent();
-        event.setBoundMenu(boundMenu);
-        event.setType(1);
-        // 加入事件队列
-        bindingEventQueue.addEvent(device.getDeviceKey(), event);
+//        BoundMenuEvent event = new BoundMenuEvent();
+//        event.setBoundMenu(boundMenu);
+//        event.setType(1);
+//        // 加入事件队列
+//        bindingEventQueue.addEvent(device.getDeviceKey(), event);
         return boundMenu;
     }
 
@@ -134,11 +134,11 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
                         .eq(Device::getUserId, userId))) {
             throw new BusinessException("绑定记录不存在或无权操作");
         }
-        // 加入解绑事件队列
-        BoundMenuEvent event = new BoundMenuEvent();
-        event.setBoundMenu(boundMenu);
-        event.setType(2);
-        bindingEventQueue.addEvent(deviceMapper.selectById(boundMenu.getDeviceId()).getDeviceKey(), event);
+//        // 加入解绑事件队列
+//        BoundMenuEvent event = new BoundMenuEvent();
+//        event.setBoundMenu(boundMenu);
+//        event.setType(2);
+//        bindingEventQueue.addEvent(deviceMapper.selectById(boundMenu.getDeviceId()).getDeviceKey(), event);
         baseMapper.deleteById(bindingId);
     }
 

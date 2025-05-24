@@ -94,6 +94,7 @@ public class MenuController {
         menu.setSource(1);
         menu.setDisplayPath(FileUtils.getNewDisplayPath(oldMenu.getDisplayPath(), menu.getMenuName()));
         boolean b = menuService.updateById(menu);
+        menu = menuService.getById(menu.getId());
         if (!b) {
             return Result.error("修改失败");
         } else {

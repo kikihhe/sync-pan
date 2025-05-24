@@ -142,6 +142,8 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
 
     /**
      * 检查冲突
+     * 第一个云端冲突
+     * 第二个本地冲突
      */
     @Override
     public List<ConflictVO> checkConflict(Menu menu) {

@@ -34,7 +34,7 @@ public class ConflictMap {
         menuConflictVO.setMenu(menu);
         menuConflictVO.setOldName(oldName);
         menuConflictVO.setType(type);
-        menuConflictMap.put(oldName, menuConflictVO);
+        menuConflictMap.put(menu.getDisplayPath(), menuConflictVO);
     }
     public ConflictVO getAllConflicts(String displayPath) {
         ConflictVO result = new ConflictVO();

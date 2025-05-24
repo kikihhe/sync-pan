@@ -154,23 +154,20 @@ public class BoundMenuController {
             return Result.error("目录未绑定");
         }
         List<ConflictVO> conflictList =  menuService.checkConflict(menu);
-        // 新增冲突合并逻辑
+        // 冲突合并逻辑
         if (!conflictList.isEmpty()) {
             // 获取冲突地图中的冲突
             ConflictVO mapConflicts = conflictMap.getAllConflicts(menu.getDisplayPath());
 
-            // 处理本地冲突（index 0）
-            ConflictVO localConflict = conflictList.get(0);
+            // 处理本地冲突（index 1）
+            ConflictVO localConflict = conflictList.get(1);
             filterConflicts(localConflict, mapConflicts);
 
-            // 处理云端冲突（index 1）
+            // 处理云端冲突（index 0）
             if (conflictList.size() > 1) {
-                ConflictVO cloudConflict = conflictList.get(1);
+                ConflictVO cloudConflict = conflictList.get(0);
                 mergeConflicts(cloudConflict, mapConflicts);
             }
-
-            // 添加新冲突到云端
-            conflictList.add(mapConflicts);
         }
 
         return Result.success(conflictList);
