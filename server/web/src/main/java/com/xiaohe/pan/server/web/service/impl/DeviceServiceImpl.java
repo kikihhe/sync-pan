@@ -93,6 +93,10 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         for (String clientPath : boundedRemotePathList) {
             if (!serverBoundMenuMap.containsKey(clientPath)) {
                 BoundMenu boundMenu = serverBoundMenuMap.get(clientPath);
+                if (boundMenu == null) {
+                    boundMenu = new BoundMenu();
+                    boundMenu.setRemoteMenuPath(clientPath);
+                }
                 removedBoundRemotePath.add(boundMenu);
             }
         }

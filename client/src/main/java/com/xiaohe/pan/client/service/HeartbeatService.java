@@ -39,7 +39,7 @@ public class HeartbeatService {
     }
 
     public void start() {
-        scheduler.scheduleAtFixedRate(this::sendHeartbeat, 0, 2, TimeUnit.MINUTES);
+        scheduler.scheduleAtFixedRate(this::sendHeartbeat, 0, 1, TimeUnit.MINUTES);
         System.out.println("heartbeatService started");
     }
 
@@ -107,7 +107,7 @@ public class HeartbeatService {
                     md5StorageFactory.removeStorage(localPath);
                 }
             } else if (event.getType() == 2) {
-                boolean success = monitor.unbindDirectory(binding.getLocalPath(), binding.getRemoteMenuId());
+                boolean success = monitor.unbindDirectory(binding.getRemoteMenuPath());
                 if (success) {
                     md5StorageFactory.removeStorage(Paths.get(binding.getLocalPath()));
                 }

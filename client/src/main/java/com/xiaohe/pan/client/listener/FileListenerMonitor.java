@@ -26,6 +26,14 @@ public class FileListenerMonitor {
         return SingletonHolder.INSTANCE;
     }
 
+    public boolean unbindDirectory(String remoteMenuPath) {
+        for (BoundDirectory boundDirectory : boundDirectories) {
+            if (boundDirectory.getRemote().equals(remoteMenuPath)) {
+                return unbindDirectory(boundDirectory.getDirectory().getAbsolutePath(), boundDirectory.getRemoteMenuId());
+            }
+        }
+        return false;
+    }
     public boolean unbindDirectory(String local, Long remoteMenuId) {
         File dir = new File(local);
         FileAlterationObserver observer = new FileAlterationObserver(dir, createFilter());
