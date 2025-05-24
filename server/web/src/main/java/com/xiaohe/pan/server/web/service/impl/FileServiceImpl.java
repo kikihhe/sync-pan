@@ -33,10 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -94,6 +91,9 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         File file = new File();
         try {
             // 1. 保存真实文件
+            if (inputStream == null) {
+                inputStream = new ByteArrayInputStream(fileDTO.getData(), 0, fileDTO.getData().length);
+            }
             StoreFileContext storeFileContext = new StoreFileContext()
                     .setFilename(fileDTO.getFileName())
                     .setTotalSize(fileDTO.getFileSize())
@@ -117,8 +117,8 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
             file.setOwner(userId);
             file.setRealPath(storeFileContext.getRealPath());
             file.setFileSize(fileDTO.getFileSize());
-            file.setIdentifier(FileUtils.calculateFileMD5(fileDTO.getMultipartFile().getBytes()));
-            file.setSource(fileDTO.getSource());
+            file.setIdentifier(FileUtils.calculateFileMD5(fileDTO.getData()));
+            file.setSource(fileDTO.getSource() == null ? 1 : fileDTO.getSource());
             file.setBoundMenuId(fileDTO.getBoundMenuId());
             Integer storageCode = StoreTypeEnum.getCodeByDesc(storageType);
             file.setStorageType(storageCode);

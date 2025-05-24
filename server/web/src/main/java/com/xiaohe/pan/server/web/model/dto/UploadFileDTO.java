@@ -15,4 +15,6 @@ public class UploadFileDTO {
     private Integer source;
     private Long boundMenuId;
     private MultipartFile multipartFile;
+    // 可以用multipartFile上传，也可以用字节数组上传
+    private byte[] data;
 }

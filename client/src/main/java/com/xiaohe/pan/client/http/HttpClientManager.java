@@ -22,6 +22,7 @@ import org.apache.http.util.EntityUtils;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -110,7 +111,7 @@ public class HttpClientManager {
         addHeaders(httpPost, headers);
 
         if (body != null) {
-            httpPost.setEntity(new StringEntity(body));
+            httpPost.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8)));
         }
 
         try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
@@ -190,7 +191,7 @@ public class HttpClientManager {
 
     private Map<String, String> generateDefaultHeaders() {
         Map<String, String> headers = new HashMap<>();
-        headers.put("content-type", "application/json;charset=utf8");
+        headers.put("content-type", "application/json;charset=UTF-8");
         return headers;
     }
 
