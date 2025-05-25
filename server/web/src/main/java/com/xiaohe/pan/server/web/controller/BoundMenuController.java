@@ -6,9 +6,11 @@ import com.xiaohe.pan.common.model.dto.EventDTO;
 import com.xiaohe.pan.common.model.dto.EventsDTO;
 import com.xiaohe.pan.common.model.dto.MergeEvent;
 import com.xiaohe.pan.common.model.vo.EventVO;
+import com.xiaohe.pan.common.util.FileUtils;
 import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.core.queue.ConflictMap;
 import com.xiaohe.pan.server.web.core.queue.MergeEventQueue;
+import com.xiaohe.pan.server.web.enums.BoundMenuDirection;
 import com.xiaohe.pan.server.web.enums.DeviceStatus;
 import com.xiaohe.pan.server.web.model.domain.BoundMenu;
 import com.xiaohe.pan.server.web.model.domain.Device;
@@ -153,10 +155,18 @@ public class BoundMenuController {
         if (!menu.getBound()) {
             return Result.error("目录未绑定");
         }
+        Long boundMenuId = menu.getBoundMenuId();
+        BoundMenu boundMenu = boundMenuService.getById(boundMenuId);
+        if (Objects.isNull(boundMenu)) {
+            return Result.error("绑定目录不存在");
+        }
+        if (Objects.equals(boundMenu.getDirection(), BoundMenuDirection.UP.getCode())) {
+            return Result.error("同步目录为上传方式，禁止冲突检查");
+        }
         List<ConflictVO> conflictList =  menuService.checkConflict(menu);
         // 冲突合并逻辑
         if (!conflictList.isEmpty()) {
-            // 获取冲突地图中的冲突
+            // 获取冲突map中的冲突
             ConflictVO mapConflicts = conflictMap.getAllConflicts(menu.getDisplayPath());
 
             // 处理本地冲突（index 1）
@@ -198,7 +208,7 @@ public class BoundMenuController {
         }
 //        logger.info("收到来自 deviceKey=" + deviceKey + "的心跳请求");
         Device device = deviceService.verifySecret(deviceKey, secret);
-        // 转为 MergeEvent 并返回
+
         List<ResolveConflictDTO> resolveConflictDTOS = mergeEventQueue.pollResolveConflict(deviceKey);
         if (CollectionUtils.isEmpty(resolveConflictDTOS)) {
             return Result.success();
@@ -222,7 +232,7 @@ public class BoundMenuController {
                 mergeEvent.setLocalBoundMenuPath(boundMenu.getLocalPath());
                 mergeEvent.setRemoteBoundMenuPath(boundMenu.getRemoteMenuPath());
                 mergeEvent.setFilename(fileItem.getFileName());
-                String remoteMenuPath = fileItem.getDisplayPath().substring(fileItem.getDisplayPath().lastIndexOf("/") + 1);
+                String remoteMenuPath = FileUtils.getNewDisplayPath(fileItem.getDisplayPath(), "");
                 mergeEvent.setFileType(2);
                 mergeEvent.setResolveRemotePath(currentMenu.getDisplayPath());
                 mergeEvent.setRemoteMenuPath(remoteMenuPath);
@@ -241,12 +251,13 @@ public class BoundMenuController {
                 mergeEvent.setRemoteBoundMenuPath(boundMenu.getRemoteMenuPath());
                 mergeEvent.setFilename(menuItem.getMenuName());
                 mergeEvent.setFileType(1);
-                String remoteMenuPath = menuItem.getDisplayPath().substring(menuItem.getDisplayPath().lastIndexOf("/") + 1);
+                String remoteMenuPath = FileUtils.getNewDisplayPath(menuItem.getDisplayPath(), null);
                 mergeEvent.setRemoteMenuPath(remoteMenuPath);
                 mergeEvent.setResolveRemotePath(currentMenu.getDisplayPath());
                 mergeEvents.add(mergeEvent);
             });
         });
+        mergeEventQueue.clearResolveConflict(deviceKey, null);
         return Result.success(mergeEvents);
     }
 

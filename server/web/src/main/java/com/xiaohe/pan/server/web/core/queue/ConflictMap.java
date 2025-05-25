@@ -35,6 +35,7 @@ public class ConflictMap {
         menuConflictVO.setOldName(oldName);
         menuConflictVO.setType(type);
         menuConflictMap.put(menu.getDisplayPath(), menuConflictVO);
+        // 如果该目录下有文件冲突，一并加入
     }
     public ConflictVO getAllConflicts(String displayPath) {
         ConflictVO result = new ConflictVO();

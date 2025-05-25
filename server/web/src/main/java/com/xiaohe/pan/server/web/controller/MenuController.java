@@ -95,9 +95,18 @@ public class MenuController {
         menu.setDisplayPath(FileUtils.getNewDisplayPath(oldMenu.getDisplayPath(), menu.getMenuName()));
         boolean b = menuService.updateById(menu);
         menu = menuService.getById(menu.getId());
+        // 修改所有子目录和子文件的 displayPath
+        List<Menu> subMenuList = menuService.getAllSubMenu(menu.getId(), new ArrayList<>());
+        // 找出所有目录和文件
+        List<Long> subMenuIDList = subMenuList.stream().map(Menu::getId).collect(Collectors.toList());
+        List<File> subFileList = fileService.lambdaQuery().in(File::getMenuId, subMenuIDList).list();
+        // 遍历所有子目录和子文件，修改 displayPath
+        subMenuList.forEach(m -> m.setDisplayPath(FileUtils.getNewDisplayPath(m.getDisplayPath(), m.getMenuName())));
+        subFileList.forEach(f -> f.setDisplayPath(FileUtils.getNewDisplayPath(f.getDisplayPath(), f.getFileName())));
         if (!b) {
             return Result.error("修改失败");
         } else {
+            // 此目录放在冲突中
             conflictMap.addMenuConflict(menu, oldMenu.getMenuName(), 3);
         }
         return Result.success("修改成功");

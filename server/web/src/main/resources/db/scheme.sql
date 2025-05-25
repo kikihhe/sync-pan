@@ -10,7 +10,7 @@ create table bound_menu
     id               bigint auto_increment
         primary key,
     device_id        bigint               not null comment '设备ID',
-    direction        int        default 1 not null comment '同步方向, 1-上传，2-下载',
+    direction        int        default 1 not null comment '同步方向, 1-上传，2-下载, 0-双向',
     local_path       varchar(255)         not null comment '本地目录路径',
     remote_menu_id   bigint               not null comment '云端目录id',
     remote_menu_path varchar(1024)        not null comment '云端目录路径',

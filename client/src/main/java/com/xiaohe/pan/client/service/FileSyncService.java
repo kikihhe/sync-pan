@@ -151,7 +151,7 @@ public class FileSyncService {
                 // 暴力清除目录
                 File targetDir = new File(localDir);
                 if (targetDir.exists()) {
-                    deleteRecursive(targetDir);
+                    deleteRecursiveWithoutSelf(targetDir);
                 }
                 targetDir.mkdirs();
 
@@ -302,18 +302,31 @@ public class FileSyncService {
         // 将所有反斜杠替换为正斜杠，然后再处理
         return path.replace('\\', '/');
     }
-    // 递归删除目录
+    // 递归删除整个目录（含自身）
     private void deleteRecursive(File file) {
         if (file.isDirectory()) {
             File[] entries = file.listFiles();
+            if (entries != null) {
+                for (File entry : entries) {
+                    deleteRecursive(entry); // 递归删除子项
+                }
+            }
+        }
+        file.delete();
+    }
+
+    // 仅删除子内容（保留当前目录）
+    private void deleteRecursiveWithoutSelf(File dir) {
+        if (dir.isDirectory()) {
+            File[] entries = dir.listFiles();
             if (entries != null) {
                 for (File entry : entries) {
                     deleteRecursive(entry);
                 }
             }
         }
-        file.delete();
     }
+
     public void shutdown() throws Exception {
         monitor.stop();
         scheduler.shutdown();

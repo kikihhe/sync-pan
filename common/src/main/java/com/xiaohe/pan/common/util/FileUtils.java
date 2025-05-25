@@ -183,6 +183,9 @@ public class FileUtils {
 
     public static String getNewDisplayPath(String displayPath, String newName) {
         String parentPath = displayPath.substring(0, displayPath.lastIndexOf("/"));
+        if (StringUtils.isBlank(newName)) {
+            return parentPath;
+        }
         return parentPath + "/" + newName;
     }
     public static String calculateFileMD5(byte[] fileData) {

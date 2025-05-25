@@ -214,10 +214,10 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         if (Objects.isNull(currentMenu)) {
             throw new BusinessException("目录不存在");
         }
-        
+        resolveConflictDTO.setCurrentMenu(currentMenu);
         // 获取绑定记录
         LambdaQueryWrapper<BoundMenu> lambda = new LambdaQueryWrapper<>();
-        lambda.eq(BoundMenu::getRemoteMenuId, currentMenu.getBoundMenuId());
+        lambda.eq(BoundMenu::getId, currentMenu.getBoundMenuId());
         BoundMenu boundMenu = baseMapper.selectOne(lambda);
         if (Objects.isNull(boundMenu)) {
             throw new BusinessException("绑定记录不存在");
@@ -272,7 +272,6 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         
         // 更新所有用户选择保留的文件，将source设置为3（已合并）
         for (File file : resolveConflictDTO.getFileItems()) {
-            if (file.getSource() == 3) continue;
             file.setSource(3); // 设置为已合并状态
             fileService.updateById(file);
         }
