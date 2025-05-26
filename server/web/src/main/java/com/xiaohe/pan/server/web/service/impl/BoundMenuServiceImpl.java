@@ -5,12 +5,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
 import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.common.model.dto.EventDTO;
-import com.xiaohe.pan.common.model.dto.EventsDTO;
-import com.xiaohe.pan.common.model.dto.MergeEvent;
 import com.xiaohe.pan.common.model.vo.EventVO;
 import com.xiaohe.pan.common.util.FileUtils;
-import com.xiaohe.pan.common.util.MD5Util;
-import com.xiaohe.pan.server.web.convert.BoundMenuConvert;
 import com.xiaohe.pan.server.web.core.queue.BindingEventQueue;
 import com.xiaohe.pan.server.web.core.queue.MergeEventQueue;
 import com.xiaohe.pan.server.web.enums.DeviceStatus;
@@ -22,9 +18,7 @@ import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.ResolveConflictDTO;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
-import com.xiaohe.pan.server.web.model.event.BoundMenuEvent;
 import com.xiaohe.pan.server.web.model.vo.BoundMenuVO;
-import com.xiaohe.pan.server.web.model.vo.MenuConflictVO;
 import com.xiaohe.pan.server.web.model.vo.ResolvedConflictVO;
 import com.xiaohe.pan.server.web.service.BoundMenuService;
 import com.xiaohe.pan.server.web.service.FileService;
@@ -40,7 +34,6 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -238,7 +231,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
 
         // 删除不在用户解决方案中的冲突项
         deleteConflictItems(resolveConflictDTO, currentMenu, subMenuList, subFileList);
-
+        recycleConflictItems(resolveConflictDTO, currentMenu, subMenuList, subFileList);
         mergeEventQueue.addResolveConflict(device.getDeviceKey(), resolveConflictDTO);
 
         // 处理用户选择保留的目录
@@ -247,7 +240,21 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         // 处理用户选择保留的文件
         handleResolvedFiles(resolveConflictDTO, currentMenu);
     }
-    
+
+    /**
+     * 在网站上手动删除的都恢复过来
+     * @param resolveConflictDTO
+     * @param currentMenu
+     * @param subMenuList
+     * @param subFileList
+     */
+    private void recycleConflictItems(ResolveConflictDTO resolveConflictDTO, Menu currentMenu, List<Menu> subMenuList, List<File> subFileList) {
+        subFileList.stream().filter(f -> f.getSource() != 3 && f.getDeleted()).forEach(f -> {f.setDeleted(false);});
+        subMenuList.stream().filter(f -> f.getSource() != 3 && f.getDeleted()).forEach(f -> {f.setDeleted(false);});
+        fileService.updateBatchById(subFileList);
+        menuService.updateBatchById(subMenuList);
+    }
+
     /**
      * 处理用户选择保留的目录
      */
@@ -609,6 +616,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
             return fileCreateEvent(boundRecord, boundMenu, eventDTO);
         }
         fileService.deleteFile(Arrays.asList(existsFile.getId()));
+        fileService.permanentDelete(existsFile.getId());
         UploadFileDTO uploadFileDTO = new UploadFileDTO();
         uploadFileDTO.setFileName(existsFile.getFileName());
         uploadFileDTO.setFileType(existsFile.getFileType());
@@ -679,7 +687,9 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         String localBoundMenuPath = boundRecord.getLocalPath();
         String remoteMenuPath = boundRecord.getRemoteMenuPath();
         String calculatedRemotePath = calculateRemotePath(localBoundMenuPath, remoteMenuPath, eventDTO.getLocalPath());
+        File existsFile = fileService.lambdaQuery().eq(File::getDisplayPath, calculatedRemotePath).one();
         fileService.deleteByDisplayPath(calculatedRemotePath);
+        fileService.permanentDelete(existsFile.getId());
         return buildEventVO(eventDTO, calculatedRemotePath);
     }
 

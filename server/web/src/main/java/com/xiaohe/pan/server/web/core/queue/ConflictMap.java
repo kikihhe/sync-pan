@@ -39,8 +39,8 @@ public class ConflictMap {
     }
     public ConflictVO getAllConflicts(String displayPath) {
         ConflictVO result = new ConflictVO();
-        List<FileConflictVO> fileResults = new ArrayList<>();
-        List<MenuConflictVO> menuResults = new ArrayList<>();
+        ArrayList<FileConflictVO> fileResults = new ArrayList<>();
+        ArrayList<MenuConflictVO> menuResults = new ArrayList<>();
 
         // 处理文件冲突
         fileConflictMap.forEach((path, conflict) -> {
@@ -59,10 +59,9 @@ public class ConflictMap {
         menuConflictMap.forEach((path, conflict) -> {
             if (path.startsWith(displayPath)) {
                 // 收集该目录下的子文件冲突
-                List<FileConflictVO> subFiles = fileConflictMap.entrySet().stream()
+                ArrayList<FileConflictVO> subFiles = fileConflictMap.entrySet().stream()
                         .filter(entry -> entry.getKey().startsWith(path + "/"))
-                        .map(Map.Entry::getValue)
-                        .collect(Collectors.toList());
+                        .map(Map.Entry::getValue).collect(Collectors.toCollection(ArrayList::new));
 
                 conflict.setSubFileList(subFiles);
                 menuResults.add(conflict);

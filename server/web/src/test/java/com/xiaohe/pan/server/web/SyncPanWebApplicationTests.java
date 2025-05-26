@@ -8,12 +8,18 @@ import com.xiaohe.pan.server.web.service.MenuService;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import javax.annotation.Resource;
 
 @SpringBootTest
 class SyncPanWebApplicationTests {
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @Test
     void contextLoads() {
@@ -54,6 +60,14 @@ class SyncPanWebApplicationTests {
         Menu menuByPath = menuService.addMenuByPath(menu);
         System.out.println(menuByPath);
 
+    }
+
+    @Test
+    void clearRedis() {
+        stringRedisTemplate.execute((RedisCallback<Object>) (redisConnection) -> {
+            redisConnection.flushAll();
+            return null;
+        });
     }
 
 

@@ -61,11 +61,19 @@
     <!--Map<String,Object> selectMapById(Long id);-->
 
 
+    <select id="selectAllFilesByMenuId" resultMap="File">
+        SELECT *
+        FROM file
+        WHERE menu_id = #{menuId}
+    </select>
+
     <select id="selectDeletedFiles" resultMap="File">
         SELECT *
         FROM file
         WHERE deleted = true
-        AND owner = #{userId}
+        <if test="userId != null">
+            AND owner = #{userId}
+        </if>
         <if test="fileName != null and fileName != ''">
             AND file_name LIKE CONCAT('%', #{fileName}, '%')
         </if>

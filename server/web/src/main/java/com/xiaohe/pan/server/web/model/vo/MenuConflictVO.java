@@ -3,6 +3,8 @@ package com.xiaohe.pan.server.web.model.vo;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import lombok.Data;
 import lombok.experimental.Accessors;
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -16,6 +18,6 @@ public class MenuConflictVO {
      * 3: 修改
      */
     private Integer type;
-    private List<FileConflictVO> subFileList;
-    private List<MenuConflictVO> submenuList;
+    private ArrayList<FileConflictVO> subFileList;
+    private ArrayList<MenuConflictVO> submenuList;
 }

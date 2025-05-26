@@ -29,6 +29,11 @@ public class MergeEvent {
     private String resolveLocalPath;
 
     /**
+     * 事件在本地的全路径
+     */
+    private String localPath;
+
+    /**
      * 文件/目录 的名称
      * 云端全路径: remoteMenuPath + filename
      * 本地全路径: localBoundMenuPath + (remoteMenuPath - boundMenuPath) + filename

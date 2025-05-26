@@ -25,6 +25,11 @@ public interface FileMapper extends BaseMapper<File> {
             @Param("limit") Integer limit
     );
 
+    List<File> selectAllFilesByMenuId(
+            @Param("menuId") Long menuId
+    );
+
+
     // 回收站内文件的计数
     Long countDeletedFiles(@Param("userId") Long userId, @Param("fileName") String fileName);
 

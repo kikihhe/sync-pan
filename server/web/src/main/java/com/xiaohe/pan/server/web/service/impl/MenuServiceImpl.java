@@ -164,23 +164,21 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
 
         return result;
     }
-    public List<FileConflictVO> getFileConflicts(Long menuId, Integer source) {
-        LambdaQueryChainWrapper<File> lambda = fileService.lambdaQuery().eq(File::getMenuId, menuId);
+    public ArrayList<FileConflictVO> getFileConflicts(Long menuId, Integer source) {
+        List<File> files = fileService.selectAllFilesByMenuId(menuId);
         if (Objects.isNull(source)) {
-            lambda.ne(File::getSource, 3);
+            files = files.stream().filter(f -> f.getSource() != 3).collect(Collectors.toList());
         } else {
-            lambda.eq(File::getSource, source);
+            files = files.stream().filter(f -> Objects.equals(f.getSource(), source)).collect(Collectors.toList());
         }
-        List<File> files = lambda.list();
 
         return files.stream()
-                .map(f -> new FileConflictVO().setFile(f).setType(1)) // 根据实际业务设置类型
-                .collect(Collectors.toList());
+                .map(f -> new FileConflictVO().setFile(f).setType(1)).collect(Collectors.toCollection(ArrayList::new));
     }
 
-    public List<MenuConflictVO> getMenuConflicts(Long menuId, Integer source) {
+    public ArrayList<MenuConflictVO> getMenuConflicts(Long menuId, Integer source) {
         if (menuId == null) {
-            return Collections.emptyList();
+            return new ArrayList<>();
         }
         LambdaQueryChainWrapper<Menu> lambda = this.lambdaQuery()
                 .eq(Menu::getParentId, menuId);
@@ -191,17 +189,14 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
         }
         List<Menu> menus = lambda.list();
         if (CollectionUtils.isEmpty(menus)) {
-            return Collections.emptyList();
+            return new ArrayList<>();
         }
         return menus.stream()
-                .map(m -> {
-                    return new MenuConflictVO()
-                            .setMenu(m)
-                            .setSubmenuList(getMenuConflicts(m.getId(), null))
-                            .setSubFileList(getFileConflicts(m.getId(), null))
-                            .setType(1);
-                }) // 根据实际业务设置类型
-                .collect(Collectors.toList());
+                .map(m -> new MenuConflictVO()
+                        .setMenu(m)
+                        .setSubmenuList(getMenuConflicts(m.getId(), null))
+                        .setSubFileList(getFileConflicts(m.getId(), null))
+                        .setType(1)).collect(Collectors.toCollection(ArrayList::new));
     }
     /**
      * 根据树形批量创建目录
@@ -336,5 +331,10 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
             throw new BusinessException("目录不存在");
         }
         return removeById(menu.getId());
+    }
+
+    @Override
+    public List<Menu> selectAllMenusByMenuId(Long currentMenuId) {
+        return Collections.emptyList();
     }
 }

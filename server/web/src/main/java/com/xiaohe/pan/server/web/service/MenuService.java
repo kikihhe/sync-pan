@@ -30,4 +30,6 @@ public interface MenuService extends IService<Menu> {
     Menu getByDisplayPath(String menuPath);
 
     List<ConflictVO> checkConflict(Menu menu);
+
+    List<Menu> selectAllMenusByMenuId(Long currentMenuId);
 }

@@ -31,6 +31,7 @@ public interface FileService extends IService<File> {
     void download(Long id, HttpServletResponse response) throws RuntimeException, IOException;
 
     public PageVO<File> getDeletedFiles(Long userId, PageQuery pageQuery, String fileName);
+    public List<File> selectAllFilesByMenuId(Long menuId);
 
     void recycleFile(Long fileId, Long targetMenuId);
 

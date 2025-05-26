@@ -53,6 +53,11 @@
         </if>
 
     </select>
+    <select id="selectAllMenusByMenuId" resultMap="Menu">
+        SELECT *
+        FROM menu
+        WHERE `menu_id` = #{menuId}
+    </select>
     <!--配置-->
     <!--id  接口对应的方法-->
     <!--parameterType 方法入参类别 [可简写]-->

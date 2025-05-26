@@ -17,9 +17,7 @@ import com.xiaohe.pan.server.web.model.domain.Device;
 import com.xiaohe.pan.server.web.model.domain.File;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.dto.ResolveConflictDTO;
-import com.xiaohe.pan.server.web.model.vo.BoundMenuVO;
-import com.xiaohe.pan.server.web.model.vo.ConflictVO;
-import com.xiaohe.pan.server.web.model.vo.ResolvedConflictVO;
+import com.xiaohe.pan.server.web.model.vo.*;
 import com.xiaohe.pan.server.web.service.BoundMenuService;
 import com.xiaohe.pan.server.web.service.DeviceService;
 import com.xiaohe.pan.server.web.service.FileService;
@@ -180,6 +178,7 @@ public class BoundMenuController {
             }
         }
 
+        conflictList.get(0).getMenuConflictVOList().forEach(i -> getDeletedConflicts(i));
         return Result.success(conflictList);
     }
 
@@ -284,10 +283,41 @@ public class BoundMenuController {
         });
 
         // 合并目录冲突
-        mapConflicts.getMenuConflictVOList().forEach(mm -> {
-            target.getMenuConflictVOList().removeIf(m ->
-                    m.getMenu().getDisplayPath().equals(mm.getMenu().getDisplayPath()));
-            target.getMenuConflictVOList().add(mm);
-        });
+        for (MenuConflictVO mm : mapConflicts.getMenuConflictVOList()) {
+            boolean found = false;
+            // 遍历目标列表查找相同路径
+            for (MenuConflictVO existing : target.getMenuConflictVOList()) {
+                if (existing.getMenu().getDisplayPath().equals(mm.getMenu().getDisplayPath())) {
+                    // 找到匹配项则更新字段
+                    existing.setType(mm.getType());
+                    existing.setOldName(mm.getOldName());
+                    found = true;
+                    break;
+                }
+            }
+            // 未找到则添加新条目
+            if (!found) {
+                target.getMenuConflictVOList().add(mm);
+            }
+        }
+    }
+    private void getDeletedConflicts(MenuConflictVO menuConflictVO) {
+        Menu m = menuConflictVO.getMenu();
+        List<File> fileList = fileService.selectAllFilesByMenuId(m.getId());
+        List<File> deleted = fileList.stream().filter(f -> f.getSource() != 3 && f.getDeleted()).collect(Collectors.toList());
+        if (!CollectionUtils.isEmpty(deleted)) {
+            ArrayList<FileConflictVO> fileConflictVOS = new ArrayList<>();
+            for (File file : deleted) {
+                FileConflictVO fileConflictVO = new FileConflictVO();
+                fileConflictVO.setFile(file);
+                fileConflictVO.setType(2);
+                fileConflictVOS.add(fileConflictVO);
+            }
+            menuConflictVO.setSubFileList(fileConflictVOS);
+        }
+        ArrayList<MenuConflictVO> submenuList = menuConflictVO.getSubmenuList();
+        if (!CollectionUtils.isEmpty(submenuList)) {
+            submenuList.forEach(i -> getDeletedConflicts(i));
+        }
     }
 }

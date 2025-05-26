@@ -13,11 +13,13 @@ import com.xiaohe.pan.common.model.dto.EventDTO;
 import com.xiaohe.pan.common.model.dto.EventsDTO;
 import com.xiaohe.pan.common.model.dto.MergeEvent;
 import com.xiaohe.pan.common.util.FileUtils;
+import com.xiaohe.pan.common.util.PathUtils;
 import com.xiaohe.pan.common.util.Result;
 import org.apache.commons.collections4.CollectionUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -43,8 +45,8 @@ public class FileSyncService {
 
 
     public void start() {
-        scheduler.scheduleAtFixedRate(this::processEvents, 5, 60, TimeUnit.SECONDS);
-        downScheduler.scheduleAtFixedRate(this::mergedEvents, 5, 60, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::processEvents, 5, 30, TimeUnit.SECONDS);
+        downScheduler.scheduleAtFixedRate(this::mergedEvents, 5, 30, TimeUnit.SECONDS);
         System.out.println("fileSyncService started");
     }
 
@@ -135,45 +137,91 @@ public class FileSyncService {
                 return;
             }
             // 把 localBoundMenuPath 中的 \\ 替换为 /
-            events.forEach(mergeEvent -> mergeEvent.setLocalBoundMenuPath(normalizePathSeparator(mergeEvent.getLocalBoundMenuPath())));
+            events.forEach(mergeEvent -> {
+                mergeEvent.setLocalBoundMenuPath(normalizePathSeparator(mergeEvent.getLocalBoundMenuPath()));
+                mergeEvent.setLocalPath(calculateLocalPath(mergeEvent.getLocalBoundMenuPath(), mergeEvent.getRemoteBoundMenuPath(), mergeEvent.getRemoteMenuPath(), mergeEvent.getFilename()));
+            });
             // 按本地绑定目录分组
-            Map<String, List<MergeEvent>> dirGroups = events.stream()
-                    .collect(Collectors.groupingBy(e -> {
-                        // 计算本地根目录：localBoundMenuPath + (remoteMenuPath - remoteBoundMenuPath)
-                        return calculateLocalPath(
-                                e.getLocalBoundMenuPath(),
-                                e.getRemoteBoundMenuPath(),
-                                e.getRemoteMenuPath(),
-                                ""
-                        );
-                    }));
-            dirGroups.forEach((localDir, eventList) -> {
-                // 暴力清除目录
-                File targetDir = new File(localDir);
+            Map<String, List<MergeEvent>> mergeEventMap = events.stream().collect(Collectors.groupingBy(MergeEvent::getLocalBoundMenuPath));
+            // 处理每个分组
+            mergeEventMap.forEach((localBoundMenuPath, eventList) -> {
+                // 根据路径找出当前分组的公共前缀
+                List<String> localPathList = eventList.stream().map(MergeEvent::getLocalPath).collect(Collectors.toList());
+                String commonPrefix = PathUtils.findCommonPrefix(localPathList);
+                // 清除目录
+                File targetDir = new File(commonPrefix);
+                if (!targetDir.exists()) {
+                    targetDir.mkdirs();
+                }
                 if (targetDir.exists()) {
                     deleteRecursiveWithoutSelf(targetDir);
                 }
-                targetDir.mkdirs();
-
-                // 批量创建新内容
-                eventList.forEach(event -> {
-                    String fullPath = calculateLocalPath(
-                            event.getLocalBoundMenuPath(),
-                            event.getRemoteBoundMenuPath(),
-                            event.getRemoteMenuPath(),
-                            event.getFilename()
-                    );
+                eventList.stream().sorted(Comparator.comparing(MergeEvent::getFileType)).forEach(event -> {
+                    String fullPath = event.getLocalPath();
                     if (event.getFileType() == 1) { // 目录
                         new File(fullPath).mkdirs();
                     } else { // 文件
                         try {
-                            Files.write(Paths.get(fullPath), event.getData());
+                            Path path = Paths.get(fullPath);
+                            Path parentDir = path.getParent();
+                            if (Files.notExists(parentDir)) {
+                                Files.createDirectories(parentDir);
+                            }
+                            // 覆盖写入
+                            Files.write(path, event.getData());
                         } catch (IOException e) {
                             System.out.println("文件创建失败：" + fullPath);
                         }
                     }
                 });
             });
+//            Map<String, List<MergeEvent>> dirGroups = events.stream()
+//                    .collect(Collectors.groupingBy(e -> {
+//                        // 计算本地绑定根目录：localBoundMenuPath + (remoteMenuPath - remoteBoundMenuPath)
+//                        return calculateLocalMenu(
+//                                e.getLocalBoundMenuPath(),
+//                                e.getRemoteBoundMenuPath(),
+//                                e.getRemoteMenuPath()
+//                        );
+//                    }));
+//            // 按路径长度排序（路径越短越先处理）
+//            List<Map.Entry<String, List<MergeEvent>>> sortedGroups = dirGroups.entrySet().stream()
+//                    .sorted(Comparator.comparingInt(entry -> entry.getKey().length()))
+//                    .collect(Collectors.toList());
+//
+//            dirGroups.forEach((localDir, eventList) -> {
+//                // 暴力清除目录
+//                File targetDir = new File(localDir);
+//                if (targetDir.exists()) {
+//                    deleteRecursiveWithoutSelf(targetDir);
+//                }
+//                targetDir.mkdirs();
+//
+//                // 批量创建新内容
+//                eventList.stream().sorted().forEach(event -> {
+//                    String fullPath = calculateLocalPath(
+//                            event.getLocalBoundMenuPath(),
+//                            event.getRemoteBoundMenuPath(),
+//                            event.getRemoteMenuPath(),
+//                            event.getFilename()
+//                    );
+//                    if (event.getFileType() == 1) { // 目录
+//                        new File(fullPath).mkdirs();
+//                    } else { // 文件
+//                        try {
+//                            Path path = Paths.get(fullPath);
+//                            Path parentDir = path.getParent();
+//                            if (Files.notExists(parentDir)) {
+//                                Files.createDirectories(parentDir);
+//                            }
+//                            // 覆盖写入
+//                            Files.write(path, event.getData());
+//                        } catch (IOException e) {
+//                            System.out.println("文件创建失败：" + fullPath);
+//                        }
+//                    }
+//                });
+//            });
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -258,7 +306,26 @@ public class FileSyncService {
 //        }
 //    }
 
+    public String calculateLocalMenu(String localBoundMenuPath,
+                                            String remoteBoundMenuPath,
+                                            String remoteMenuPath) {
+        // 标准化路径格式
+        String normalizedLocal = normalizePath(localBoundMenuPath);
+        String normalizedRemoteBound = normalizePath(remoteBoundMenuPath);
+        String normalizedRemote = normalizePath(remoteMenuPath);
 
+        // 提取相对路径部分
+        String relativePath = normalizedRemote.startsWith(normalizedRemoteBound) ?
+                normalizedRemote.substring(normalizedRemoteBound.length()) : "";
+
+        // 拼接完整路径
+        return joinPaths(normalizedLocal, relativePath);
+    }
+    private static String normalizePath(String path) {
+        // 统一替换反斜杠为正斜杠，并去除首尾斜杠
+        return path.replace('\\', '/')
+                .replaceAll("^/+|/+$", "");
+    }
     private String calculateLocalPath(String localBoundMenuPath, String remoteBoundMenuPath, String remoteMenuPath, String filename) {
         // 标准化路径分隔符，确保在不同操作系统下都能正确处理
         localBoundMenuPath = normalizePathSeparator(localBoundMenuPath);
@@ -294,7 +361,12 @@ public class FileSyncService {
         }
         return fullLocalPath;
     }
-
+    private String joinPaths(String base, String addition) {
+        // 智能拼接路径部分
+        if (base.isEmpty()) return addition;
+        if (addition.isEmpty()) return base;
+        return base + "/" + addition;
+    }
     /**
      * 标准化路径分隔符，将所有斜杠转换为统一格式
      */

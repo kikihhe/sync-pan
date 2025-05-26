@@ -92,17 +92,23 @@ public class MenuController {
         }
         Menu oldMenu = menuService.getById(menu.getId());
         menu.setSource(1);
-        menu.setDisplayPath(FileUtils.getNewDisplayPath(oldMenu.getDisplayPath(), menu.getMenuName()));
+        final String newDisplayPath = FileUtils.getNewDisplayPath(oldMenu.getDisplayPath(), menu.getMenuName());
+        menu.setDisplayPath(newDisplayPath);
         boolean b = menuService.updateById(menu);
         menu = menuService.getById(menu.getId());
         // 修改所有子目录和子文件的 displayPath
         List<Menu> subMenuList = menuService.getAllSubMenu(menu.getId(), new ArrayList<>());
-        // 找出所有目录和文件
-        List<Long> subMenuIDList = subMenuList.stream().map(Menu::getId).collect(Collectors.toList());
-        List<File> subFileList = fileService.lambdaQuery().in(File::getMenuId, subMenuIDList).list();
+        List<File> subFileList = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(subMenuList)) {
+            // 找出所有目录和文件
+            subMenuList.forEach(m -> m.setDisplayPath(FileUtils.getNewDisplayPath(m.getDisplayPath(), m.getMenuName())));
+            List<Long> subMenuIDList = subMenuList.stream().map(Menu::getId).collect(Collectors.toList());
+            subFileList.addAll(fileService.lambdaQuery().in(File::getMenuId, subMenuIDList).list());
+        }
+        subFileList.addAll(fileService.lambdaQuery().eq(File::getMenuId, menu.getId()).list());
         // 遍历所有子目录和子文件，修改 displayPath
-        subMenuList.forEach(m -> m.setDisplayPath(FileUtils.getNewDisplayPath(m.getDisplayPath(), m.getMenuName())));
-        subFileList.forEach(f -> f.setDisplayPath(FileUtils.getNewDisplayPath(f.getDisplayPath(), f.getFileName())));
+        subFileList.forEach(f -> f.setDisplayPath(newDisplayPath + "/" + f.getFileName()));
+        fileService.updateBatchById(subFileList, subFileList.size());
         if (!b) {
             return Result.error("修改失败");
         } else {

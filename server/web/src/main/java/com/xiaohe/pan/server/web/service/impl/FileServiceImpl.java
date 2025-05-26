@@ -269,6 +269,11 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
     }
 
     @Override
+    public List<File> selectAllFilesByMenuId(Long menuId) {
+        return baseMapper.selectAllFilesByMenuId(menuId);
+    }
+
+    @Override
     public PageVO<File> getDeletedFiles(Long userId, PageQuery pageQuery, String fileName) {
         int pageSize = pageQuery.getPageSize();
         int pageNum = pageQuery.getPageNum();

@@ -16,4 +16,6 @@ public interface MenuMapper extends BaseMapper<Menu> {
                                            @Param("desc") Integer desc,
                                            @Param("start") Integer start,
                                            @Param("count") Integer count);
+
+    public List<Menu> selectAllMenusByMenuId(@Param("menuId") Long menuId);
 }
