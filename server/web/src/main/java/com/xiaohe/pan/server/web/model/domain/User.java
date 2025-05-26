@@ -21,6 +21,7 @@ public class User extends BaseDomain implements Serializable {
 
     private String password;
 
+    private String email;
     /**
      * 盐
      */

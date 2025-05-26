@@ -8,6 +8,7 @@
         <id property="id" column="id"/>
         <result property="username" column="username"/>
         <result property="password" column="password"/>
+        <result property="email" column="email"/>
         <result property="salt" column="salt"/>
         <result property="question" column="question"/>
         <result property="answer" column="answer"/>
