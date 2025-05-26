@@ -17,9 +17,15 @@ public class UploadChunkFileDTO {
     private String chunkIdentifier;
 
     /**
+     * 所属文件的名称
+     */
+    private String fileName;
+
+    /**
      * 分片名称，为该分片的md5
      */
     private String chunkName;
+
 
     /**
      * 分片所属文件的类型

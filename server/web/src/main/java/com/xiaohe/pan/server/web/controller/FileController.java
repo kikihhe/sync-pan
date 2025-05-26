@@ -1,5 +1,7 @@
 package com.xiaohe.pan.server.web.controller;
-
+import com.xiaohe.pan.server.web.util.MenuUtil;
+import com.xiaohe.pan.storage.api.StoreTypeEnum;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xiaohe.pan.common.exceptions.BusinessException;
 import com.xiaohe.pan.common.model.dto.MergeEvent;
 import com.xiaohe.pan.common.util.FileUtils;
@@ -9,10 +11,7 @@ import com.xiaohe.pan.common.util.Result;
 import com.xiaohe.pan.server.web.constants.FileConstants;
 import com.xiaohe.pan.server.web.core.queue.ConflictMap;
 import com.xiaohe.pan.server.web.core.queue.MergeEventQueue;
-import com.xiaohe.pan.server.web.model.domain.BoundMenu;
-import com.xiaohe.pan.server.web.model.domain.File;
-import com.xiaohe.pan.server.web.model.domain.FileChunk;
-import com.xiaohe.pan.server.web.model.domain.Menu;
+import com.xiaohe.pan.server.web.model.domain.*;
 import com.xiaohe.pan.server.web.model.dto.DeleteFileDTO;
 import com.xiaohe.pan.server.web.model.dto.DeletedFileQueryDTO;
 import com.xiaohe.pan.server.web.model.dto.MergeChunkFileDTO;
@@ -21,15 +20,13 @@ import com.xiaohe.pan.server.web.model.dto.UploadChunkFileDTO;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
 import com.xiaohe.pan.server.web.model.dto.RecycleFileDTO;
 import com.xiaohe.pan.server.web.model.vo.FileChunkVO;
-import com.xiaohe.pan.server.web.service.BoundMenuService;
-import com.xiaohe.pan.server.web.service.FileChunkService;
-import com.xiaohe.pan.server.web.service.FileService;
-import com.xiaohe.pan.server.web.service.MenuService;
+import com.xiaohe.pan.server.web.service.*;
 import com.xiaohe.pan.server.web.util.HttpUtil;
 import com.xiaohe.pan.server.web.util.SecurityContextUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -63,12 +61,18 @@ public class FileController {
     private MenuService menuService;
     @Autowired
     private BoundMenuService boundMenuService;
-
+    @Value("${storage.type}")
+    private String storageType;
     @Autowired
     private ConflictMap conflictMap;
+    @Autowired
+    private FileFingerprintService fileFingerprintService;
 
+    @Autowired
+    private MenuUtil menuUtil;
     /**
      * 上传文件
+     *
      * @return
      */
     @PostMapping(value = "/upload")
@@ -90,7 +94,6 @@ public class FileController {
         fileDTO.setFileSize(fileDTO.getMultipartFile().getSize());
         fileDTO.setSource(1);
         fileService.uploadFile(fileDTO.getMultipartFile().getInputStream(), fileDTO);
-
 
 
         return Result.success("上传成功");
@@ -140,19 +143,6 @@ public class FileController {
         rawFile.setSource(1);
         rawFile.setDisplayPath(FileUtils.getNewDisplayPath(byId.getDisplayPath(), file.getFileName()));
         fileService.updateById(rawFile);
-//        if (menu != null && menu.getBound()) {
-//            BoundMenu boundMenu = boundMenuService.getBoundMenuByMenuId(menu.getId());
-//            MergeEvent mergeEvent = new MergeEvent();
-//            mergeEvent.setOldFileName(byId.getFileName());
-//            mergeEvent.setFilename(file.getFileName());
-//            mergeEvent.setRemoteMenuPath(menu.getDisplayPath());
-//            mergeEvent.setRemoteBoundMenuPath(boundMenu.getRemoteMenuPath());
-//            mergeEvent.setType(3);
-//            mergeEvent.setFileType(2);
-//            mergeEvent.setLocalBoundMenuPath(boundMenu.getLocalPath());
-//            mergeEvent.setCreateTime(LocalDateTime.now());
-//            mergeEventQueue.addEvent(mergeEvent);
-//        }
         conflictMap.addFileConflict(rawFile, byId.getFileName(), 3);
         return Result.success("修改成功");
     }
@@ -167,6 +157,7 @@ public class FileController {
 
     /**
      * 文件预览
+     *
      * @return
      */
     @GetMapping("/preview")
@@ -178,6 +169,7 @@ public class FileController {
         fileService.preview(fileId, response);
 
     }
+
     /**
      * 添加公共的文件读取响应头
      */
@@ -187,14 +179,72 @@ public class FileController {
         response.addHeader(FileConstants.CONTENT_TYPE_STR, contentTypeValue);
         response.setContentType(contentTypeValue);
     }
+
+    @GetMapping("/checkNameDuplicate")
+    public Result<String> checkNameDuplicate(@RequestParam Long menuId, @RequestParam String fileName) {
+        if (menuId == 0) {
+            menuId = null;
+        }
+        Boolean nameDuplicate = fileService.checkNameDuplicate(menuId, fileName);
+        if (nameDuplicate) {
+            return Result.error("同目录下文件名禁止重复: " + fileName);
+        }
+        return Result.success("success");
+    }
+
+    @PostMapping("/checkLargeFileExists")
+    public Result<String> checkLargeFile(@RequestBody UploadChunkFileDTO chunkFileDTO) {
+        FileFingerprint fingerprint = fileFingerprintService.lambdaQuery().eq(FileFingerprint::getIdentifier, chunkFileDTO.getIdentifier()).one();
+        // 大文件存在，不需要分片上传
+        if (!Objects.isNull(fingerprint)) {
+            Menu menu = menuService.getById(chunkFileDTO.getMenuId());
+            String displayPath = "/" + chunkFileDTO.getFileName();
+            if (menu != null) {
+                displayPath = menu.getDisplayPath() + displayPath;
+            }
+            File largeFile = new File();
+            largeFile.setFileName(chunkFileDTO.getFileName());
+            largeFile.setFileSize(chunkFileDTO.getTotalSize());
+            largeFile.setRealPath(fingerprint.getRealPath());
+            largeFile.setSource(1);
+            largeFile.setIdentifier(fingerprint.getIdentifier());
+            largeFile.setOwner(SecurityContextUtil.getCurrentUser().getId());
+            largeFile.setMenuId(chunkFileDTO.getMenuId());
+            largeFile.setDisplayPath(displayPath);
+            largeFile.setBoundMenuId(menu == null ? null : menu.getBoundMenuId());
+            largeFile.setFileType(chunkFileDTO.getFileType());
+            largeFile.setStorageType(StoreTypeEnum.getCodeByDesc(storageType));
+            File file = fileService.lambdaQuery().eq(File::getMenuId, largeFile.getMenuId())
+                    .eq(File::getFileName, largeFile.getFileName()).one();
+            if (Objects.nonNull(file)) {
+                return Result.error("文件名重复");
+            }
+            fileService.save(largeFile);
+            menuUtil.onAddFile(chunkFileDTO.getMenuId(), chunkFileDTO.getTotalSize());
+            fingerprint.setReferenceCount(fingerprint.getReferenceCount() + 1);
+            fileFingerprintService.updateById(fingerprint);
+            return Result.success("success");
+        } else {
+            return Result.error("error");
+        }
+    }
     @PostMapping("/uploadChunk")
     public Result<Boolean> uploadChunk(UploadChunkFileDTO chunkFileDTO) throws IOException {
-        boolean merge = fileChunkService.uploadChunkFile(chunkFileDTO);
-        return Result.success("上传成功", merge);
+        File file = fileService.lambdaQuery()
+                .eq(File::getIdentifier, chunkFileDTO.getIdentifier())
+                .eq(File::getOwner, SecurityContextUtil.getCurrentUser().getId())
+                .eq(File::getMenuId, chunkFileDTO.getMenuId())
+                .eq(File::getFileName, chunkFileDTO.getFileName())
+                .one();
+        if (!Objects.isNull(file)) {
+            throw new BusinessException("文件已存在: " + chunkFileDTO.getFileName());
+        }
+        return fileChunkService.uploadChunkFile(chunkFileDTO);
     }
 
     /**
      * 查询指定标识符的上传完成的分片列表
+     *
      * @param identifier
      * @return
      */
@@ -235,6 +285,7 @@ public class FileController {
 
     /**
      * 彻底删除文件
+     *
      * @param fileId
      * @return
      */

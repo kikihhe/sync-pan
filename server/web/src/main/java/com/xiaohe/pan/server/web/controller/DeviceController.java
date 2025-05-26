@@ -51,6 +51,9 @@ public class DeviceController {
         LambdaQueryWrapper<Device> lambda = new LambdaQueryWrapper<>();
         lambda.eq(Device::getUserId, userId);
         List<Device> list = deviceService.list(lambda);
+        if (list.isEmpty()) {
+            return Result.success(Collections.emptyList());
+        }
         List<Long> secretIdList = list.stream().map(Device::getSecretId).collect(Collectors.toList());
         List<Secret> secretList = secretService.listByIds(secretIdList);
         Map<Long, String> secretMap = secretList.stream().collect(Collectors.toMap(Secret::getId, Secret::getKey));

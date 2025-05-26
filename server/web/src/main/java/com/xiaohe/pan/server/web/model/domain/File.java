@@ -31,6 +31,9 @@ public class File extends BaseDomain{
 
     private Long fileSize;
 
+    /**
+     * 文件类型，txt、doc、pdf等
+     */
     private String fileType;
 
     private Integer storageType;

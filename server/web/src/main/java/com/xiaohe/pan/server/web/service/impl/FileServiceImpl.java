@@ -9,12 +9,16 @@ import com.xiaohe.pan.common.util.FileUtils;
 import com.xiaohe.pan.common.util.PageQuery;
 import com.xiaohe.pan.common.util.PageVO;
 import com.xiaohe.pan.server.web.constants.FileConstants;
+import com.xiaohe.pan.server.web.enums.FileReferenceTypeEnum;
+import com.xiaohe.pan.server.web.mapper.FileFingerprintMapper;
 import com.xiaohe.pan.server.web.mapper.FileMapper;
 import com.xiaohe.pan.server.web.mapper.MenuMapper;
 import com.xiaohe.pan.server.web.model.domain.File;
+import com.xiaohe.pan.server.web.model.domain.FileFingerprint;
 import com.xiaohe.pan.server.web.model.domain.Menu;
 import com.xiaohe.pan.server.web.model.domain.User;
 import com.xiaohe.pan.server.web.model.dto.UploadFileDTO;
+import com.xiaohe.pan.server.web.service.FileFingerprintService;
 import com.xiaohe.pan.server.web.service.FileService;
 import com.xiaohe.pan.server.web.util.HttpUtil;
 import com.xiaohe.pan.server.web.util.MenuUtil;
@@ -31,6 +35,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
@@ -57,6 +62,12 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
     private MenuUtil menuUtil;
     @Autowired
     private FileMapper fileMapper;
+
+    @Autowired
+    private FileFingerprintMapper fileFingerprintMapper;
+
+    @Autowired
+    private FileFingerprintService fileFingerprintService;
 
     /**
      * 获取指定目录下的文件
@@ -90,17 +101,34 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
     public Boolean uploadFile(InputStream inputStream, UploadFileDTO fileDTO) throws IOException {
         File file = new File();
         try {
-            // 1. 保存真实文件
+            // 保存真实文件
             if (inputStream == null) {
                 inputStream = new ByteArrayInputStream(fileDTO.getData(), 0, fileDTO.getData().length);
+            }
+            // 如果前端没有指定，可能是同步服务在添加文件
+            String identifier = fileDTO.getIdentifier();
+            if (StringUtils.isEmpty(identifier)) {
+                fileDTO.setIdentifier(FileUtils.calculateFileMD5(fileDTO.getData()));
             }
             StoreFileContext storeFileContext = new StoreFileContext()
                     .setFilename(fileDTO.getFileName())
                     .setTotalSize(fileDTO.getFileSize())
                     .setInputStream(inputStream);
-            // 调用文件服务，文件的真实路径会保存在 context 中
-            storageService.store(storeFileContext);
+            FileFingerprint existsFileFingerprint = fileFingerprintService.lambdaQuery()
+                    .eq(FileFingerprint::getIdentifier, fileDTO.getIdentifier())
+                    .eq(FileFingerprint::getReferenceType, FileReferenceTypeEnum.FILE.getCode())
+                    .one();
+            if (existsFileFingerprint == null) {
+                // 文件不存在调用文件服务，文件的真实路径会保存在 context 中
+                storageService.store(storeFileContext);
+            } else {
+                // 文件已存在, 不用真实保存，添加引用即可
+                storeFileContext.setRealPath(existsFileFingerprint.getRealPath());
+                existsFileFingerprint.setReferenceCount(existsFileFingerprint.getReferenceCount() + 1);
+                fileFingerprintService.updateById(existsFileFingerprint);
+            }
 
+            String realPath = storeFileContext.getRealPath();
             // 2. 保存文件的真实路径与展示路径/用户的联系（入库）
 //            file = FileConvert.INSTANCE.uploadDTOConvertTOFile(fileDTO);
             Menu menu = new Menu();
@@ -115,9 +143,10 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
             file.setFileType(fileDTO.getFileType());
             file.setMenuId(fileDTO.getMenuId());
             file.setOwner(userId);
-            file.setRealPath(storeFileContext.getRealPath());
+
+            file.setRealPath(realPath);
             file.setFileSize(fileDTO.getFileSize());
-            file.setIdentifier(FileUtils.calculateFileMD5(fileDTO.getData()));
+            file.setIdentifier(identifier);
             file.setSource(fileDTO.getSource() == null ? 1 : fileDTO.getSource());
             file.setBoundMenuId(fileDTO.getBoundMenuId());
             Integer storageCode = StoreTypeEnum.getCodeByDesc(storageType);
@@ -126,7 +155,17 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
             if (insert < 0) {
                 throw new RuntimeException("上传失败");
             }
+            // 修改文件所属目录的大小
             menuUtil.onAddFile(fileDTO.getMenuId(), file.getFileSize());
+            // 将文件的真实路径记录到 file_fingerprint 中
+            if (existsFileFingerprint == null) {
+                FileFingerprint fileFingerprint = new FileFingerprint();
+                fileFingerprint.setIdentifier(file.getIdentifier());
+                fileFingerprint.setRealPath(file.getRealPath());
+                fileFingerprint.setReferenceType(FileReferenceTypeEnum.FILE.getCode());
+                fileFingerprint.setReferenceCount(1);
+                fileFingerprintMapper.insert(fileFingerprint);
+            }
         } catch (Exception e) {
             if (!Objects.isNull(file.getRealPath())) {
                 DeleteFileContext context = new DeleteFileContext()
@@ -262,12 +301,25 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         if (result < 1) {
             throw new BusinessException("删除失败");
         }
-        DeleteFileContext context = new DeleteFileContext();
-        context.setRealFilePathList(Collections.singletonList(file.getRealPath()));
-        try {
-            storageService.delete(context);
-        } catch (Exception e) {
-            throw new BusinessException("删除失败");
+        // 减小文件指纹
+        FileFingerprint one = fileFingerprintService.lambdaQuery()
+                .eq(FileFingerprint::getIdentifier, file.getIdentifier())
+//                不应该指定文件类型，因为彻底删除也有可能作用于大文件
+//                .eq(FileFingerprint::getReferenceType, FileReferenceTypeEnum.FILE.getCode())
+                .one();
+        if (one != null) {
+            // 减小到0时彻底删除
+            one.setReferenceCount(one.getReferenceCount() - 1);
+            fileFingerprintService.updateById(one);
+            if (one.getReferenceCount() == 0) {
+                DeleteFileContext context = new DeleteFileContext();
+                context.setRealFilePathList(Collections.singletonList(file.getRealPath()));
+                try {
+                    storageService.delete(context);
+                } catch (Exception e) {
+                    throw new BusinessException("删除失败");
+                }
+            }
         }
         return true;
     }
@@ -300,6 +352,7 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         }
         return null;
     }
+
     @Override
     public List<File> getSubFileByMenuList(List<Long> menuIdList) {
         LambdaQueryWrapper<File> lambda = new LambdaQueryWrapper<>();
@@ -340,13 +393,14 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         response.addHeader(FileConstants.CONTENT_TYPE_STR, contentTypeValue);
         response.setContentType(contentTypeValue);
     }
+
     /**
      * 添加文件下载的属性信息
      */
     private void addDownloadAttribute(HttpServletResponse response, File file) {
         try {
             response.addHeader(FileConstants.CONTENT_DISPOSITION_STR,
-                        FileConstants.CONTENT_DISPOSITION_VALUE_PREFIX_STR + new String(file.getFileName().getBytes(FileConstants.GB2312_STR),
+                    FileConstants.CONTENT_DISPOSITION_VALUE_PREFIX_STR + new String(file.getFileName().getBytes(FileConstants.GB2312_STR),
                             FileConstants.IOS_8859_1_STR));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
