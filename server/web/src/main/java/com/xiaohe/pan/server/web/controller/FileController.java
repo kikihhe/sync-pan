@@ -117,7 +117,12 @@ public class FileController {
 //                }
 //            }
 //        }
-        fileService.deleteFile(fileDTO.getFileList());
+
+        List<Long> fileIdList = fileDTO.getFileList();
+        List<File> files = fileService.listByIds(fileIdList);
+        files.forEach(file -> file.setSource(1));
+        fileService.updateBatchById(files);
+        fileService.deleteFile(fileIdList);
         List<File> fileList = fileService.listByIds(fileDTO.getFileList());
         for (File file : fileList) {
             conflictMap.addFileConflict(file, null, 2);

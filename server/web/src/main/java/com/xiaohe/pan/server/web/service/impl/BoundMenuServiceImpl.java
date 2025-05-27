@@ -301,6 +301,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         List<File> fileToDelete = subFileList.stream().filter(f -> !resolvedFileIds.contains(f.getId())).collect(Collectors.toList());
         if (!CollectionUtils.isEmpty(fileToDelete)) {
             fileService.deleteFile(fileToDelete.stream().map(File::getId).collect(Collectors.toList()));
+            fileToDelete.forEach(i -> fileService.permanentDelete(i.getId()));
         }
         if (!CollectionUtils.isEmpty(menuToDelete)) {
             menuService.removeBatchByIds(menuToDelete);
