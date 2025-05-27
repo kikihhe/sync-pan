@@ -46,4 +46,6 @@ public interface FileService extends IService<File> {
     public List<File> getSubFileByMenuList(List<Long> menuIdList);
 
     public byte[] readFile(File file) throws IOException;
+
+    boolean recycle(File file);
 }

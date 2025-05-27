@@ -87,6 +87,15 @@ public class DeviceController {
 
     @PostMapping("/registerDevice")
     public Result<Device> registerDevice(@RequestBody Device device) {
+        if (device == null) {
+            return Result.error("设备信息不能为空");
+        }
+        if (device.getDeviceName().isEmpty()) {
+            return Result.error("设备名称不能为空");
+        }
+        if (device.getSecretId() == null) {
+            return Result.error("请选择该设备的密钥");
+        }
         Secret secret = secretService.getById(device.getSecretId());
         if (Objects.isNull(secret)) {
             return Result.error("密钥不存在");

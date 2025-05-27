@@ -115,4 +115,11 @@
         WHERE deleted = true
         AND update_time &lt; DATE_SUB(NOW(), INTERVAL 30 DAY)
     </select>
+
+    <update id="recycle">
+        UPDATE file
+        SET source = #{file.source},
+            deleted = #{file.deleted}
+        WHERE id = #{file.id}
+    </update>
 </mapper>

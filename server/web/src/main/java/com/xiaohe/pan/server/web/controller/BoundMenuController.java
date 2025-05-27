@@ -189,6 +189,7 @@ public class BoundMenuController {
     @PostMapping("/resolveConflict")
     public Result<String> resolveConflict(@RequestBody ResolveConflictDTO dto) throws IOException {
         boundMenuService.resolveConflict(dto);
+        conflictMap.clear();
         return Result.success("冲突解决成功");
     }
 

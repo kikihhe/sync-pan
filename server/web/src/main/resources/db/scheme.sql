@@ -138,8 +138,8 @@ CREATE TABLE file_fingerprint
     `real_path`       VARCHAR(1024) NOT NULL COMMENT '文件真实存储路径',
     `reference_count` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '引用次数',
     `reference_type`  int           NOT NULL COMMENT '引用类型,1-file,2-chunk',
-    `create_time`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `update_time`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `create_time`     timestamp      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `update_time`     timestamp      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `deleted`         tinyint(1) default 0 null,
     PRIMARY KEY (`id`),
     KEY               `idx_identifier` (`identifier`) USING BTREE

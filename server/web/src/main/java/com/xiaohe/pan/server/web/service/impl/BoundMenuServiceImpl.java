@@ -199,9 +199,9 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
     @Override
     public void resolveConflict(ResolveConflictDTO resolveConflictDTO) throws IOException {
         if (Objects.isNull(resolveConflictDTO.getCurrentMenuId())) {
-                throw new BusinessException("当前目录ID不能为空");
+            throw new BusinessException("当前目录ID不能为空");
         }
-        
+
         // 获取当前冲突目录
         Menu currentMenu = menuService.getById(resolveConflictDTO.getCurrentMenuId());
         if (Objects.isNull(currentMenu)) {
@@ -215,7 +215,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         if (Objects.isNull(boundMenu)) {
             throw new BusinessException("绑定记录不存在");
         }
-        
+
         // 获取设备信息
         Device device = deviceMapper.selectById(boundMenu.getDeviceId());
         if (Objects.isNull(device)) {
@@ -227,10 +227,13 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         menuService.getAllSubMenu(currentMenu.getId(), subMenuList);
         List<Long> subMenuIdList = subMenuList.stream().map(Menu::getId).collect(Collectors.toList());
         subMenuIdList.add(currentMenu.getId());
-        List<File> subFileList = fileService.getSubFileByMenuList(subMenuIdList);
+        List<File> subFileList = new ArrayList<>();
+        // 已经删除的文件也要
+        subMenuIdList.forEach(i -> subFileList.addAll(fileService.selectAllFilesByMenuId(i)));
 
         // 删除不在用户解决方案中的冲突项
         deleteConflictItems(resolveConflictDTO, currentMenu, subMenuList, subFileList);
+        // 恢复被删除的文件以及目录
         recycleConflictItems(resolveConflictDTO, currentMenu, subMenuList, subFileList);
         mergeEventQueue.addResolveConflict(device.getDeviceKey(), resolveConflictDTO);
 
@@ -243,14 +246,19 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
 
     /**
      * 在网站上手动删除的都恢复过来
+     *
      * @param resolveConflictDTO
      * @param currentMenu
      * @param subMenuList
      * @param subFileList
      */
     private void recycleConflictItems(ResolveConflictDTO resolveConflictDTO, Menu currentMenu, List<Menu> subMenuList, List<File> subFileList) {
-        subFileList.stream().filter(f -> f.getSource() != 3 && f.getDeleted()).forEach(f -> {f.setDeleted(false);});
-        subMenuList.stream().filter(f -> f.getSource() != 3 && f.getDeleted()).forEach(f -> {f.setDeleted(false);});
+        subFileList.stream().filter(f -> f.getSource() != 3 && f.getDeleted()).forEach(f -> {
+            f.setDeleted(false);
+        });
+        subMenuList.stream().filter(f -> f.getSource() != 3 && f.getDeleted()).forEach(f -> {
+            f.setDeleted(false);
+        });
         fileService.updateBatchById(subFileList);
         menuService.updateBatchById(subMenuList);
     }
@@ -264,11 +272,12 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         }
         // 更新所有用户选择保留的目录，将source设置为3（已合并）
         for (Menu menu : resolveConflictDTO.getMenuItems()) {
+            menu.setDeleted(false);
             menu.setSource(3); // 设置为已合并状态
-            menuService.updateById(menu);
+            menuService.resolve(menu);
         }
     }
-    
+
     /**
      * 处理用户选择保留的文件
      */
@@ -276,11 +285,12 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         if (CollectionUtils.isEmpty(resolveConflictDTO.getFileItems())) {
             return;
         }
-        
+
         // 更新所有用户选择保留的文件，将source设置为3（已合并）
         for (File file : resolveConflictDTO.getFileItems()) {
             file.setSource(3); // 设置为已合并状态
-            fileService.updateById(file);
+            file.setDeleted(false);
+            fileService.recycle(file);
         }
     }
 
@@ -520,7 +530,6 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
     }
 
 
-
     private String calculateFileMD5(byte[] fileData) {
         return FileUtils.calculateFileMD5(fileData);
     }
@@ -645,6 +654,7 @@ public class BoundMenuServiceImpl extends ServiceImpl<BoundMenuMapper, BoundMenu
         menuUtil.onAddFile(newFile.getMenuId(), newFile.getFileSize());
         return buildEventVO(eventDTO, calculatedRemotePath);
     }
+
     private EventVO fileCreateEvent(BoundMenu boundRecord, Menu boundMenu, EventDTO eventDTO) throws IOException {
         // 与云端绑定的本地的顶级目录
         String localBoundMenuPath = boundRecord.getLocalPath();

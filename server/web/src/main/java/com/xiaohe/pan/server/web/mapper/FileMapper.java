@@ -46,4 +46,6 @@ public interface FileMapper extends BaseMapper<File> {
      * @return 文件列表
      */
     List<File> selectFilesDeletedBefore30Days();
+
+    int recycle(@Param("file") File file);
 }

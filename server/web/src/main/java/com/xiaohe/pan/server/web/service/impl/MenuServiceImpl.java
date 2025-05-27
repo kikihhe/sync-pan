@@ -46,6 +46,8 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
 
     @Autowired
     private MenuUtil menuUtil;
+    @Autowired
+    private MenuMapper menuMapper;
 
     @Override
     public List<Menu> getSubMenuByRange(Long menuId, Long userId, String name, Integer orderBy, Integer desc, Integer start, Integer count) {
@@ -336,5 +338,11 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
     @Override
     public List<Menu> selectAllMenusByMenuId(Long currentMenuId) {
         return Collections.emptyList();
+    }
+
+    @Override
+    public boolean resolve(Menu menu) {
+        int result = menuMapper.resolve(menu);
+        return result > 0;
     }
 }

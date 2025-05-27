@@ -248,9 +248,6 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
     @Override
     public void recycleFile(Long fileId, Long targetMenuId) {
         File file = baseMapper.getDeletedFileById(fileId);
-        if (Objects.isNull(file)) {
-            throw new BusinessException("文件不存在");
-        }
         if (!Objects.isNull(targetMenuId)) {
             Menu menu = menuMapper.selectById(targetMenuId);
             if (Objects.isNull(menu)) {
@@ -332,6 +329,9 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
     @Override
     public Boolean deleteByDisplayPath(String displayPath) throws IOException {
         File file = getByDisplayPath(displayPath);
+        if (file == null) {
+            return false;
+        }
         deleteFile(Collections.singletonList(file.getId()));
         return true;
     }
@@ -384,6 +384,12 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements Fi
         storageService.readFile(context);
 
         return bos.toByteArray();
+    }
+
+    @Override
+    public boolean recycle(File file) {
+        int result = fileMapper.recycle(file);
+        return result > 0;
     }
 
     /**

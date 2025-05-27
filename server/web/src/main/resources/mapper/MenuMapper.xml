@@ -58,6 +58,13 @@
         FROM menu
         WHERE `menu_id` = #{menuId}
     </select>
+
+    <update id="resolve">
+        UPDATE menu
+        SET source = #{menu.source},
+            deleted = #{menu.deleted}
+        WHERE id = #{menu.id}
+    </update>
     <!--配置-->
     <!--id  接口对应的方法-->
     <!--parameterType 方法入参类别 [可简写]-->
